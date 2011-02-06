@@ -1,0 +1,32 @@
+<html>
+  <head>
+    <script type="text/javascript" src="http://code.jquery.com/jquery-1.5.min.js"></script>
+    <script type="text/javascript">
+      $(function(){
+        var game = $('<game/>');
+        var sprite = new GameObject();
+        game.append(sprite);
+        
+        console.log(game);
+        $(game).find('GameObject').each(function() {
+            console.log($(this).data('self'));
+        })
+      });
+      
+      function GameObject() {
+        this.self = $('<GameObject/>');
+        this.self.data('self', this);
+        this.self.attr({
+            'x':0,
+            'y':0
+        });
+        return this.self;
+      }
+      GameObject.prototype.draw = function() {
+        console.log('drawn');
+      }
+    </script>
+  </head>
+  <body>
+  </body>
+</html>

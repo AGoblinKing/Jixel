@@ -1,0 +1,100 @@
+<html>
+  <head>
+    <link type="text/css" rel="stylesheet" src="/css/jquery-ui.css"/>
+    <script type="text/javascript" src="/js/jquery.js"></script>
+    <script type="text/javascript" src="/js/jquery-ui.js"></script>
+    <script type="text/javascript" src="jixel.js"></script>
+    <script type="text/javascript">
+      var game;
+      $(function(){
+        game = new Jixel($('#can')[0]);
+        var am = game.am;
+   
+        var assets = [
+                      ['image','cloud',{src:'cloud.png'}],
+                      ['image','ship',{src:'ship.png'}]];
+        am.load(assets, function() {
+          game.addObject(new Cloud(am.get('cloud'), 0, 0));
+          game.addObject(new Cloud(am.get('cloud'), 400, 40));
+          game.addObject(new Ship(am.get('ship'), 100,100));
+          game.start();
+        }, function() {
+          //could add loadBar here
+        });
+      });
+      
+      function LoadBar(count) {
+        //Assuming blocks = 5%
+        this.display = $('<div/>').addClass('loadBar');
+        this.number = number;
+        this.numberOfTicks = 20;
+        this.mod = 1/this.numberOfTicks;
+      }
+      LoadBar.prototype.progress = function(count) {
+        var num = ((this.number - count)/this.number)%this.mod;
+        this.display.empty();
+        for(var x=0;x < num;x++) {
+          this.display.append($('<div/>').addClass('loadTick'));
+        }
+      }
+      Ship.Inherits(Sprite);
+      function Ship(graphic, x, y) {
+        this.Sprite(graphic, x, y);
+        this.speed = -50;
+        this.accel = [0,0];
+      }
+      Ship.prototype.update = function(game, time) {
+        var mov = [0,0];
+        if('W' in game.keys) {
+          mov[1] = this.speed;
+        } else if ('S' in game.keys) {
+          mov[1] = -1*this.speed;
+        }
+        if ('A' in game.keys) {
+          mov[0] = this.speed;
+        } else if ('D' in game.keys) {
+          mov[0] = -1*this.speed;
+        }
+        this.move(time, mov);
+      }
+      Cloud.Inherits(Sprite);
+      function Cloud(graphic, x, y) {
+        this.Sprite(graphic, x, y);
+        this.dir = 1;
+      }
+      Cloud.prototype.update = function(game, time) {
+        if(this.x+this.asset.width > game.width()) {
+          this.dir = -1;
+        } else if(this.x < 0) {
+          this.dir = 1;
+        }
+        this.move(time, [50*this.dir,0]);
+      }
+  
+    </script>
+    <style type="text/css">
+      body {
+        background-repeat:repeat;
+        background-color:#6ab5f8;
+        overflow:hidden;
+        margin:0px;
+        padding:0px;
+      }
+      #assets {
+        display:none;
+      }
+      canvas {
+        border:2px solid black;
+        image-rendering: -moz-crisp-edges;
+      }
+    </style>
+  </head>
+  <body>
+    
+    <canvas id="can" width="480px" height="320px">
+      
+    </canvas>
+    <div id="assets">
+    </div>
+  </body>
+</html>
