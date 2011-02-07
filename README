@@ -2,7 +2,7 @@ Jixel
 
 
 TODO:
-TileMaps
+AutoTileMaps
 Collisions
 Sprite Animations
 Emitters
@@ -16,3 +16,4 @@ Sprites
 GameObject
 Upscaling
 Input
+TileMaps
