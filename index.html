@@ -15,17 +15,23 @@
         "5,6,6,6,6,6,6,6,6,6,6,6,6,6,7";
         
         
-        var assets = [
-                      ['image','cloud',{src:'cloud.png'}],
-                      ['image','ship',{src:'ship.png'}],
-                      ['image','tiles',{src:'tilemap.png'}]];
+        var assets = {
+                      'keyboard':['audio','keyboard_cat_remix.mp3'],
+                      'cloud':['image', 'cloud.png'],
+                      'ship':['image', 'ship.png'],
+                      'tiles':['image', 'tilemap.png'],
+                      'hit':['audio', 'hit.mp3']
+                    };
+                     
         game.changeScale(3);
         am.load(assets, function() {
+          console.log('loaded');
           game.add(new TileMap(0,112).loadMap(game, mapData, am.get('tiles')));
           game.add(new Cloud(am.get('cloud'), 0, 0));
           game.add(new Cloud(am.get('cloud'), 400, 40));
           game.add(new Ship(am.get('ship'), 100,100));
           game.start();
+          game.audio.play('keyboard', true, 0, 12.5, .4);
         }, function() {
           //could add loadBar here
         });
@@ -69,6 +75,10 @@
         } else if ('D' in game.keys) {
           mov[0] = -1*this.speed;
         }
+        if('SPACE' in game.keys) {
+          game.audio.play('hit');
+        }
+        
         this.move(time, mov);
       }
       Cloud.Inherits(Sprite);

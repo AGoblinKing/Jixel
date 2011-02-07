@@ -49,6 +49,7 @@ function Jixel(canvas) {
     this.refresh = 33;
     this.running = false;
     this.am = new AssetManager(this);
+    this.audio = new AudioManager(this);
     this.fullScreen = false;
     this.keepResolution = false;
     this.date = new Date();
@@ -73,9 +74,9 @@ function Jixel(canvas) {
     });
     
     /*** Input Overrides ***/
-    this.overrideKeys = {37:'',38:'',39:'',40:''};
+    this.overrideKeys = {37:'',38:'',39:'',40:'',32:''};
     this.overrideElements = {'INPUT':'','TEXTAREA':''};
-    this.mapKeys = {37:'A',38:'W',40:'S',39:'D'};
+    this.mapKeys = {37:'A',38:'W',40:'S',39:'D',32:'SPACE'};
     /*** Setup Events ***/
     $(window).blur(function() {
        self.pause();
@@ -127,12 +128,15 @@ Jixel.prototype.height = function(height) {
 Jixel.prototype.unpause = function() {
     if(!this.running) {
         this.running = true;
+        this.audio.unpause();
+        this.keys = {};
         this.ui.pauseMenu.dialog('close');
     }
 }
 Jixel.prototype.pause = function() {
     if(this.running) {
         this.running = false;
+        this.audio.pause();
         this.ui.pauseMenu.dialog('open');
     }
 }
@@ -177,7 +181,9 @@ Jixel.prototype.destroyObject = function(obj) {
     delete this.gameObjects[obj.id];
 }
 Jixel.prototype.update = function(timeBetween) {
-    // Do Updates
+    // Do AudioUpdates
+    this.audio.update(timeBetween);
+    // Do GameUpdates
     for(var x in this.gameObjects) {
         this.gameObjects[x].update(this, timeBetween);
     }    
@@ -358,19 +364,75 @@ function GamePoint(x, y){
 function AudioManager(game) {
     this.game = game;
     this.sounds = {};
+    this.channels = [];
+    for(var i=0;i<16;i++) {
+        this.channels[i] = new Audio();
+    }
+}
+AudioManager.prototype.play = function(name, loop, start, finish, volume) {
+    if(name in this.sounds) {
+        for(var i = 0;i < this.channels.length; i++) {
+            if(this.channels[i].paused) {
+                this.channels[i].src = this.sounds[name].src;
+                this.channels[i].start = 0;
+                this.channels[i].finish = this.sounds[name].duration;
+                if(volume) {
+                    this.channels[i].volume = volume;
+                } else {
+                    this.channels[i].volume = 1;
+                }
+                if(loop) {
+                    this.channels[i].loop = true;
+                } else {
+                    this.channels[i].loop = false;
+                }
+                if(start) {
+                    this.channels[i].currentTime = start;
+                    this.channels[i].start = start;
+                }
+                if(finish) this.channels[i].finish = finish;
+                this.channels[i].play();
+                return;
+            }
+        }
+    }
+}
+AudioManager.prototype.unpause = function () {
+    for(var i in this.channels) {
+        this.channels[i].play();
+    }
+}
+AudioManager.prototype.pause = function() {
+    for(var i in this.channels) {
+        this.channels[i].pause();
+    }
+}
+AudioManager.prototype.update = function(time) {
+    for(var i in this.channels) {
+        if(!this.channels[i].paused && this.channels[i].currentTime >= this.channels[i].finish) {
+            if(this.channels[i].loop) {
+                this.channels[i].currentTime = this.channels[i].start;
+            } else {
+                this.channels[i].pause();
+            }
+        }
+    }
+}
+AudioManager.prototype.add = function(name, audio) {
+    this.sounds[name] = audio;
 }
 function AssetManager(game) {
     this.game = game;
     this.assets = {};
     this.batches = [];
-    this.completed = [];
   }
 AssetManager.prototype.get = function(name) {
     return this.assets[name];
 }
 AssetManager.prototype.loadCheck = function(batch, name) {
-    this.completed[batch].push(this.batches[batch].splice(name, 1));
-    if(this.batches[batch].length == 0) return true;
+    this.batches[batch][name].completed = true;
+    this.batches[batch].count--;
+    if(this.batches[batch].count == 0) return true;
 }
 AssetManager.prototype.reload = function(type) {
     for(var i in this.assets) {
@@ -383,13 +445,15 @@ AssetManager.prototype.reload = function(type) {
 }
 AssetManager.prototype.load = function(assets, callback, progress){
   var self = this;
-  var batch = this.batches.length; 
+  var batch = this.batches.length;
   this.batches.push(assets);
-  this.completed.push([]);
-  
+  this.batches[batch].count = -1;
+  for(var x in assets) {
+    this.batches[batch].count++;
+  }
   for(var i in assets) {
-      this.loadAsset(assets[i][0], assets[i][1], assets[i][2], function() {
-        if(self.loadCheck(batch, $(this).data('name'))) {
+      this.loadAsset(assets[i][0], i, assets[i][1], function(item) {
+        if(self.loadCheck(batch, $(item).data('name'))) {
             if(callback) callback();
         } else {
             if(progress) progress();
@@ -397,31 +461,32 @@ AssetManager.prototype.load = function(assets, callback, progress){
       }, batch);
   }
 }
-AssetManager.prototype.loadAsset = function(type, name, attr, callback, batch) {
+AssetManager.prototype.loadAsset = function(type, name, src, callback, batch) {
   var self = this;
   if(name in this.assets) {
     if(callback) callback();
     return;
   }
   switch(type) {
+    case 'audio':
     case 'sound':
-        var temp = $('<audio/>')[0];
-        temp.src = attr.src;
-        $(temp).attr(attr);
-        $(temp).attr('name',name);
+        var temp = new Audio(src);
+        temp.src = src;
+        temp.load();
+        $(temp).data('name',name);
         $(temp).data('batch', batch);
         $(temp).data('type', 'audio');
         this.assets[name] = temp;
-        if(callback) $(temp).load(callback);
-        
+        self.game.audio.add(name, temp);
+        if(callback) callback(temp);
+    
         break;
     case 'image':
         var temp = $('<img/>')[0];
-        temp.src = attr.src;
-        $(temp).attr(attr);
+        temp.src = src;
         $(temp).data('batch', batch);
         $(temp).data('type','image');
-        $(temp).attr('name',name);
+        $(temp).data('name',name);
         this.assets[name] = temp;
         $(temp).load(function() {
             var can = $('<canvas/>')[0];
@@ -447,7 +512,7 @@ AssetManager.prototype.loadAsset = function(type, name, attr, callback, batch) {
             ctx.clearRect(0,0,can.width,can.height);
             ctx.putImageData(nd, 0, 0);
             this.scaled = can;
-            if(callback) callback();
+            if(callback) callback(this);
         });
     break;
   }
