@@ -37,13 +37,13 @@ Function.prototype.Override = function (fnSuper, stMethod)
 var objID = 0;
 /*** Game Objects ***/
 function Jixel(canvas) {
+    /*** Setup Core ***/
     this.canvas = canvas;
     this.scale = 4;
     this.ctx = canvas.getContext('2d');
     this.bufferCanvas = $('<canvas/>')[0];
     this.width(240);
     this.height(160);
-   
     this.buffer = this.bufferCanvas.getContext('2d');
     this.gameObjects = {};
     this.refresh = 33;
@@ -51,20 +51,49 @@ function Jixel(canvas) {
     this.am = new AssetManager(this);
     this.fullScreen = false;
     this.keepResolution = false;
-    
     this.date = new Date();
     this.keys = {};
     var self = this;
     
-    $(canvas).blur(function() {
-       this.running = false;
-       $('<div/>').append('Paused Game').dialog();
+    /*** Setup UI ***/
+    this.ui = {};
+    this.ui.pauseMenu = $('<div/>').dialog({
+        autoOpen : false,
+        title : 'Game Paused',
+        closeText : '',
+        modal : true,
+        buttons : {
+            'Return to Game': function() {
+                self.unpause();
+            }
+        },
+        close : function() {
+            self.unpause();
+        }
+    });
+    
+    /*** Input Overrides ***/
+    this.overrideKeys = {37:'',38:'',39:'',40:''};
+    this.overrideElements = {'INPUT':'','TEXTAREA':''};
+    this.mapKeys = {37:'A',38:'W',40:'S',39:'D'};
+    /*** Setup Events ***/
+    $(window).blur(function() {
+       self.pause();
     });
     $(document).keyup(function(e){
         delete self.keys[String.fromCharCode(e.keyCode)];
+        if(e.keyCode in self.mapKeys) {
+            delete self.keys[self.mapKeys[e.keyCode]];
+        }
     });
     $(document).keydown(function(e){
         self.keys[String.fromCharCode(e.keyCode)] = true;
+        if(e.keyCode in self.mapKeys) {
+             self.keys[self.mapKeys[e.keyCode]] = true;
+        }
+        if(!(document.activeElement.tagName in self.overrideElements) && e.keyCode in self.overrideKeys) {
+            return false;
+        }
     });
     $(canvas).click(function(e) {
       self.click(e);   
@@ -95,6 +124,18 @@ Jixel.prototype.height = function(height) {
     }
     return this.bufferCanvas.height;
 }
+Jixel.prototype.unpause = function() {
+    if(!this.running) {
+        this.running = true;
+        this.ui.pauseMenu.dialog('close');
+    }
+}
+Jixel.prototype.pause = function() {
+    if(this.running) {
+        this.running = false;
+        this.ui.pauseMenu.dialog('open');
+    }
+}
 Jixel.prototype.screenWidth = function(width) {
     if(width != undefined) {
         this.canvas.width = width; 
@@ -122,6 +163,12 @@ Jixel.prototype.start = function() {
             }
         }, this.refresh);
     }
+}
+Jixel.prototype.changeScale = function(scale) {
+    this.scale = scale;
+    this.width(this.width());
+    this.height(this.height());
+    this.am.reload('image');
 }
 Jixel.prototype.add = function(obj) {
     this.gameObjects[obj.id] = obj;
@@ -316,18 +363,30 @@ function AssetManager(game) {
     this.game = game;
     this.assets = {};
     this.batches = [];
+    this.completed = [];
   }
 AssetManager.prototype.get = function(name) {
     return this.assets[name];
 }
 AssetManager.prototype.loadCheck = function(batch, name) {
-    this.batches[batch].splice(name, 1);
+    this.completed[batch].push(this.batches[batch].splice(name, 1));
     if(this.batches[batch].length == 0) return true;
+}
+AssetManager.prototype.reload = function(type) {
+    for(var i in this.assets) {
+        if($(assets[i]).data('type') == type) {
+            $(assets[i]).trigger('load');
+        } else {
+            
+        }
+    }
 }
 AssetManager.prototype.load = function(assets, callback, progress){
   var self = this;
   var batch = this.batches.length; 
   this.batches.push(assets);
+  this.completed.push([]);
+  
   for(var i in assets) {
       this.loadAsset(assets[i][0], assets[i][1], assets[i][2], function() {
         if(self.loadCheck(batch, $(this).data('name'))) {
@@ -335,10 +394,10 @@ AssetManager.prototype.load = function(assets, callback, progress){
         } else {
             if(progress) progress();
         }
-      });
+      }, batch);
   }
 }
-AssetManager.prototype.loadAsset = function(type, name, attr, callback) {
+AssetManager.prototype.loadAsset = function(type, name, attr, callback, batch) {
   var self = this;
   if(name in this.assets) {
     if(callback) callback();
@@ -350,6 +409,8 @@ AssetManager.prototype.loadAsset = function(type, name, attr, callback) {
         temp.src = attr.src;
         $(temp).attr(attr);
         $(temp).attr('name',name);
+        $(temp).data('batch', batch);
+        $(temp).data('type', 'audio');
         this.assets[name] = temp;
         if(callback) $(temp).load(callback);
         
@@ -358,6 +419,8 @@ AssetManager.prototype.loadAsset = function(type, name, attr, callback) {
         var temp = $('<img/>')[0];
         temp.src = attr.src;
         $(temp).attr(attr);
+        $(temp).data('batch', batch);
+        $(temp).data('type','image');
         $(temp).attr('name',name);
         this.assets[name] = temp;
         $(temp).load(function() {

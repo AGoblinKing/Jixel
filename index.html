@@ -1,6 +1,6 @@
 <html>
   <head>
-    <link type="text/css" rel="stylesheet" src="css/jquery-ui.css"/>
+    <link type="text/css" rel="stylesheet" href="css/ui-lightness/jquery-ui.css"/>
     <script type="text/javascript" src="js/jquery.js"></script>
     <script type="text/javascript" src="js/jquery-ui.js"></script>
     <script type="text/javascript" src="jixel.js"></script>
@@ -14,10 +14,12 @@
         "2,3,3,3,3,3,3,3,3,3,3,3,3,3,4\n"+
         "5,6,6,6,6,6,6,6,6,6,6,6,6,6,7";
         
+        
         var assets = [
                       ['image','cloud',{src:'cloud.png'}],
                       ['image','ship',{src:'ship.png'}],
                       ['image','tiles',{src:'tilemap.png'}]];
+        game.changeScale(3);
         am.load(assets, function() {
           game.add(new TileMap(0,112).loadMap(game, mapData, am.get('tiles')));
           game.add(new Cloud(am.get('cloud'), 0, 0));
@@ -27,6 +29,12 @@
         }, function() {
           //could add loadBar here
         });
+        
+        /*
+        $(window).resize(function() {
+            game.changeScale(Math.floor($(window).height()/game.height()));
+        });
+        $(window).resize();*/
       });
       
       function LoadBar(count) {
@@ -82,16 +90,13 @@
       body {
         background-repeat:repeat;
         background-color:#6ab5f8;
-        overflow:hidden;
         margin:0px;
         padding:0px;
+        overflow:hidden;
       }
+
       #assets {
         display:none;
-      }
-      canvas {
-        border:2px solid black;
-        image-rendering: -moz-crisp-edges;
       }
     </style>
   </head>
