@@ -9,14 +9,19 @@
       $(function(){
         game = new Jixel($('#can')[0]);
         var am = game.am;
-   
+        var mapData =
+        "0,0,1,1,1,2,2,2,3,3\n"+
+        "0,1,2,3,1,0,2,1,3,4";
+        
         var assets = [
                       ['image','cloud',{src:'cloud.png'}],
-                      ['image','ship',{src:'ship.png'}]];
+                      ['image','ship',{src:'ship.png'}],
+                      ['image','tiles',{src:'tilemap.png'}]];
         am.load(assets, function() {
           game.addObject(new Cloud(am.get('cloud'), 0, 0));
           game.addObject(new Cloud(am.get('cloud'), 400, 40));
           game.addObject(new Ship(am.get('ship'), 100,100));
+          game.addObject(new TileMap(0,0).loadMap(game, mapData, am.get('tiles')));
           game.start();
         }, function() {
           //could add loadBar here

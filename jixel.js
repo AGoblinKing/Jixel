@@ -193,9 +193,11 @@ function TileMap(x, y) {
     this.heightInTiles = 0;
     this._data;
     this.drawIndex = 1;
+    this.startingIndex = 0;
     this._pixels;
     this.auto = 0;
     this._block = new GameObject();
+    this.tileGraphic;
     
 }
 TileMap.prototype.loadMap  = function(Game, MapData, TileGraphic, TileWidth, TileHeight) {
@@ -205,18 +207,18 @@ TileMap.prototype.loadMap  = function(Game, MapData, TileGraphic, TileWidth, Til
     for(var r = 0;r < this.heightInTiles;r++) {
         cols = rows[r].split(",");
         if(cols.length <=1) {
-            heightInTiles--;
+            this.heightInTiles--;
             continue;
         }
-        if(widthInTiles == 0)
-            widthInTiles = cols.length
-        for(c = 0;c < widthInTiles; c++)
+        if(this.widthInTiles == 0)
+            this.widthInTiles = cols.length
+        for(c = 0;c < this.widthInTiles; c++)
             this._data.push(cols[c]);
     }
     
     //Pre-Process the map data if its auto-tiled
     var i;
-    totalTiles = widthInTiles *heightInTiles;
+    totalTiles = this.widthInTiles*this.heightInTiles;
     //Do AutoTile later
     if(this.auto > 0) {
         
@@ -248,21 +250,61 @@ TileMap.prototype.loadMap  = function(Game, MapData, TileGraphic, TileWidth, Til
     this._screenCols = Math.ceil(game.width()/this._tileWidth)+1;
     if(this._screenCols > this.widthInTiles)
         this._screenCols = this.widthInTiles;
-        
+    
+    return this;
 }
+
+TileMap.prototype.draw = function(ctx, game) {
+    var _point = new GamePoint(0,0);
+    var _flashPoint = new GamePoint(_point.x, _point.y);
+    
+    var tx = Math.floor(-_point.x/this._tileWidth);
+    var ty = Math.floor(-_point.y/this._tileHeight);
+    if(tx < 0) tx = 0;
+    if(tx > this.widthInTiles-this._screenCols) tx = this.widthInTiles-this._screenCols;
+    if(ty < 0) ty = 0;
+    if(ty > this.heightInTiles-this._screenRows) ty = this.heightInTiles-this._screenRows;
+    var ri = ty*this.widthInTiles+tx;
+    _flashPoint.x += tx*this._tileWidth;
+    _flashPoint.y += ty*this._tileHeight;
+    var opx = _flashPoint.x;
+    var c;
+    var cri;
+    for(var r = 0;r < this._screenRows; r++) {
+        cri = ri;
+        for(c = 0; c < this._screenCols; c++) {
+            var _flashRect = this._rects[cri++];
+            if(_flashRect != null)
+                ctx.drawImage(this._pixels.scaled, _flashRect[0]*game.scale, _flashRect[1]*game.scale,
+                        _flashRect[2]*game.scale, _flashRect[3]*game.scale, _flashPoint.x*game.scale,
+                        _flashPoint.y*game.scale,  this._tileWidth*game.scale, this._tileHeight*game.scale);
+            _flashPoint.x += this._tileWidth;
+        }
+        ri += this.widthInTiles;
+        _flashPoint.x = opx;
+        _flashPoint.y += this._tileHeight;
+    }
+}
+
 TileMap.prototype.updateTile = function(index){
     if(this._data[index] < this.drawIndex) {
         this._rects[index] = null;
         return;
     }
-    var rx = (this._data[index]-this.startingIndex)*_tileWidth;
+    var rx = (this._data[index]-this.startingIndex)*this._tileWidth;
     var ry = 0;
     if(rx >= this._pixels.width) {
-        ry = (rx/this._pixels.width)*this._tileHeight;
+        ry = Math.floor(Math.abs(rx/this._pixels.width))*this._tileHeight;
         rx = rx % this._pixels.width;
     }
     this._rects[index] = [rx,ry,this._tileWidth,this._tileHeight];
 }
+
+function GamePoint(x, y){
+    this.x = x;
+    this.y = y;
+}
+
 /*** Util ***/
 
 /*** Utilities ***/
