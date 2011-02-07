@@ -8,9 +8,11 @@ Sprite Animations
 Emitters
 Scenes
 Camera
+Audio Channels
 
 Done:
 Loader
 Sprites
 GameObject
 Upscaling
+Input
