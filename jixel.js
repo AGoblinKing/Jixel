@@ -367,12 +367,14 @@ function AudioManager(game) {
     this.channels = [];
     for(var i=0;i<16;i++) {
         this.channels[i] = new Audio();
+        this.channels[i].dead = true;
     }
 }
 AudioManager.prototype.play = function(name, loop, start, finish, volume) {
     if(name in this.sounds) {
         for(var i = 0;i < this.channels.length; i++) {
-            if(this.channels[i].paused) {
+            if(this.channels[i].dead) {
+                this.channels[i].dead = false;
                 this.channels[i].src = this.sounds[name].src;
                 this.channels[i].start = 0;
                 this.channels[i].finish = this.sounds[name].duration;
@@ -399,7 +401,7 @@ AudioManager.prototype.play = function(name, loop, start, finish, volume) {
 }
 AudioManager.prototype.unpause = function () {
     for(var i in this.channels) {
-        this.channels[i].play();
+        if(!this.channels[i].dead) this.channels[i].play();
     }
 }
 AudioManager.prototype.pause = function() {
@@ -413,6 +415,7 @@ AudioManager.prototype.update = function(time) {
             if(this.channels[i].loop) {
                 this.channels[i].currentTime = this.channels[i].start;
             } else {
+                this.channels[i].dead = true;
                 this.channels[i].pause();
             }
         }
