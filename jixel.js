@@ -123,7 +123,7 @@ Jixel.prototype.start = function() {
         }, this.refresh);
     }
 }
-Jixel.prototype.addObject = function(obj) {
+Jixel.prototype.add = function(obj) {
     this.gameObjects[obj.id] = obj;
 }
 Jixel.prototype.destroyObject = function(obj) {
@@ -255,7 +255,7 @@ TileMap.prototype.loadMap  = function(Game, MapData, TileGraphic, TileWidth, Til
 }
 
 TileMap.prototype.draw = function(ctx, game) {
-    var _point = new GamePoint(0,0);
+    var _point = new GamePoint(this.x,this.y);
     var _flashPoint = new GamePoint(_point.x, _point.y);
     
     var tx = Math.floor(-_point.x/this._tileWidth);
@@ -308,6 +308,10 @@ function GamePoint(x, y){
 /*** Util ***/
 
 /*** Utilities ***/
+function AudioManager(game) {
+    this.game = game;
+    this.sounds = {};
+}
 function AssetManager(game) {
     this.game = game;
     this.assets = {};
