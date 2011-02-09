@@ -157,6 +157,7 @@ Jixel.prototype.unpause = function() {
         this.running = true;
         this.audio.unpause();
         this.keys = {};
+        this.lastUpdate = new Date();
         this.ui.pauseMenu.dialog('close');
     }
 }
