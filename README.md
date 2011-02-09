@@ -1,7 +1,15 @@
 Jixel 
+-----
+An open source game engine based on Flixel (www.flixel.org). 
 
 
-TODO:
+DEMOS
+-----
+http://www.jixel.org/JIXEL-DEMO
+
+
+TODO
+----
 AutoTileMaps
 Collisions
 Sprite Coloration
@@ -11,7 +19,8 @@ Scenes
 Camera
 
 
-Done:
+Done
+----
 Sprite Animations
 Audio Channels
 Loader
