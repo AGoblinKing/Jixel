@@ -4,13 +4,16 @@ Jixel
 TODO:
 AutoTileMaps
 Collisions
-Sprite Animations
+Sprite Coloration
+Sprite Blend Modes
 Emitters
 Scenes
 Camera
-Audio Channels
+
 
 Done:
+Sprite Animations
+Audio Channels
 Loader
 Sprites
 GameObject
