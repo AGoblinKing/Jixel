@@ -20,22 +20,29 @@
                       'cloud':['image', 'cloud.png'],
                       'ship':['image', 'ship.png'],
                       'tiles':['image', 'tilemap.png'],
-                      'hit':['audio', 'hit.mp3']
+                      'hit':['audio', 'hit.mp3'],
+                      'animals':['image', 'animals.png']
                     };
                      
         game.changeScale(3);
         am.load(assets, function() {
-          console.log('loaded');
-          game.add(new TileMap(0,112).loadMap(game, mapData, am.get('tiles')));
+          game.add(new JxlTileMap(0,112).loadMap(game, mapData, am.get('tiles')));
           game.add(new Cloud(am.get('cloud'), 0, 0));
           game.add(new Cloud(am.get('cloud'), 400, 40));
           game.add(new Ship(am.get('ship'), 100,100));
+          game.add(new Cat(am.get('animals'), 100, 100));
+          
+          /*
+          for(var i=0;i<500;i++) {
+             game.add(new Ship(am.get('ship'), Math.random()*game.width(),Math.random()*game.height()));
+          }*/
+        
           game.start();
+          game.showFPS();
           game.audio.play('keyboard', true, 0, 12.5, .4);
         }, function() {
           //could add loadBar here
         });
-        
         /*
         $(window).resize(function() {
             game.changeScale(Math.floor($(window).height()/game.height()));
@@ -57,13 +64,25 @@
           this.display.append($('<div/>').addClass('loadTick'));
         }
       }
-      Ship.Inherits(Sprite);
+      Cat.Inherits(JxlSprite);
+      Cat.Override(JxlSprite, 'update');
+      function Cat(graphic, x, y) {
+        this.JxlSprite(graphic, x, y, 32, 32);
+        this.addAnimation('run', [72,73,74,73], 5);
+        this.play('run');
+      }
+      Cat.prototype.update = function(game, time) {
+        this.JxlSprite_update(game, time);
+        
+      }
+      Ship.Inherits(JxlSprite);
       function Ship(graphic, x, y) {
-        this.Sprite(graphic, x, y);
+        this.JxlSprite(graphic, x, y);
         this.speed = -50;
         this.accel = [0,0];
       }
       Ship.prototype.update = function(game, time) {
+        this.angle += 10;
         var mov = [0,0];
         if('W' in game.keys) {
           mov[1] = this.speed;
@@ -81,9 +100,9 @@
         
         this.move(time, mov);
       }
-      Cloud.Inherits(Sprite);
+      Cloud.Inherits(JxlSprite);
       function Cloud(graphic, x, y) {
-        this.Sprite(graphic, x, y);
+        this.JxlSprite(graphic, x, y);
         this.dir = 1;
       }
       Cloud.prototype.update = function(game, time) {

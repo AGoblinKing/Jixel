@@ -54,10 +54,18 @@ function Jixel(canvas) {
     this.keepResolution = false;
     this.date = new Date();
     this.keys = {};
+    this._showFPS = false;
     var self = this;
     
     /*** Setup UI ***/
     this.ui = {};
+    this.ui.fps = $('<div/>').css({
+       fontWeight:'bold',
+       position:'fixed',
+       top:'0px',
+       right:'0px',
+       display:'none'
+    }).appendTo('body');
     this.ui.pauseMenu = $('<div/>').dialog({
         autoOpen : false,
         title : 'Game Paused',
@@ -110,6 +118,25 @@ function Jixel(canvas) {
         }
     });
     $(window).resize();
+}
+Jixel.prototype.toggleFPS = function() {
+    if(!this._showFPS) {
+        this.showFPS();
+    } else {
+        this.hideFPS();
+    }
+}
+Jixel.prototype.showFPS = function() {
+    if(!this._showFPS) {
+        this._showFPS = true;
+        this.ui.fps.show();
+    }
+}
+Jixel.prototype.hideFPS = function() {
+    if(this._showFPS) {
+        this._showFPS = false;
+        this.ui.fps.hide();
+    }
 }
 Jixel.prototype.width = function(width) {
     if(width != undefined) {
@@ -181,6 +208,10 @@ Jixel.prototype.destroyObject = function(obj) {
     delete this.gameObjects[obj.id];
 }
 Jixel.prototype.update = function(timeBetween) {
+    // Do FPS Update
+    if(this.showFPS) {
+        this.ui.fps.html(Math.floor(1000/timeBetween));
+    }
     // Do AudioUpdates
     this.audio.update(timeBetween);
     // Do GameUpdates
@@ -192,7 +223,7 @@ Jixel.prototype.update = function(timeBetween) {
     //this.buffer.clearRect(0,0, this.width(), this.height());
    
     for(var x in this.gameObjects) {
-        this.gameObjects[x].draw(this.ctx, this);
+        this.gameObjects[x].render(this.ctx, this);
     }
     //this.ctx.putImageData(this.buffer.getImageData(0,0,this.width,this.height),0,0,0,0,this.width,this.height);
     
@@ -204,7 +235,7 @@ Jixel.prototype.update = function(timeBetween) {
 Jixel.prototype.click = function(e) {
     //figure out where they clicked
 }
-function GameObject(x, y, width, height) {
+function JxlObject(x, y, width, height) {
     this.id = objID;
     objID++;
     if(x == undefined) {
@@ -219,29 +250,130 @@ function GameObject(x, y, width, height) {
     this.mass = 1;
 }
 //Override Me.
-GameObject.prototype.update = function() {}
-GameObject.prototype.draw = function() {}
+JxlObject.prototype.update = function() {}
+JxlObject.prototype.render = function() {}
+JxlObject.prototype.getScreenXY = function() {
+    return new GamePoint(this.x, this.y);
+}
 
-Sprite.Inherits(GameObject);
-function Sprite(asset, x, y, width, height) {
-    this.GameObject(x, y, width, height);
+JxlSprite.Inherits(JxlObject);
+function JxlSprite(asset, x, y, width, height) {
+    this.JxlObject(x, y, width, height);
+    this.angle = 0;
+    this._alpha = 1;
+    this._color = 0x00ffffff;
+    this._blend = null;
+    this.scale = new GamePoint(1,1);
+    this._facing = 1;
+    this._animations = {};
+    this._flipped = 0;
+    this._curFrame = 0;
+    this._frameTimer = 0;
+    this.finished = false;
+    this._caf = 0;
+    this._curAnim = null;
+   
+    //Could probably reduce memory/cpu here
+    
+    this._graphic = $('<canvas/>')[0];
+    this._graphicCTX = this._graphic.getContext('2d');
+    
     this.asset = asset;
     if(width == undefined) {
         this.width = asset.width;
         this.height = asset.height;
+    } else {
+        this.width = width;
+        this.height = height;
     }
 }
-Sprite.prototype.draw = function(ctx, game){
-    ctx.drawImage(this.asset.scaled, this.x*game.scale, this.y*game.scale);
+JxlSprite.prototype.play = function(name, force) {
+    if(force == undefined) force = false;
+    if(!force && this._curAnim != null && name == this._curAnim.name) return;
+    this._curFrame = 0;
+    this._caf = 0;
+    this._curAnim = this._animations[name];
+    this._curFrame = this._curAnim.frames[this._caf]; 
+    
 }
-Sprite.prototype.move = function(time, distance) {
+JxlSprite.prototype.calcFrame = function(game) {
+    var rx = this._curFrame * this.width;
+    var ry = 0;
+    if(rx > this.asset.width) {
+        ry = Math.floor(rx/this.asset.width)*this.height;
+        rx = rx % this.asset.width;
+    }
+    
+    this._graphic.width = this.width*game.scale;
+    this._graphic.height = this.height*game.scale;
+    this._graphicCTX.drawImage(this.asset.scaled,rx*game.scale,ry*game.scale,this.width*game.scale, this.height*game.scale, 0,0,this.width*game.scale, this.height*game.scale );
+}
+// Rotations are stored on the fly instead of prebaked since they are cheaper here than in flixel
+JxlSprite.prototype.render = function(ctx, game){
+    this.calcFrame(game);
+     var rCan = this._graphic;
+     var mod = 1;
+     
+    //lets not worry about frames for now.
+    if(this.angle !=0) {
+        mod = 1.5;
+        var key = this.angle+':'+this._curFrame;
+        if(this.asset.rotations[key] == undefined) {
+            rCan=$('<canvas/>')[0];
+            rCan.width = this.asset.scaled.width*1.5;
+            rCan.height = this.asset.scaled.height*1.5;
+            var rCTX = rCan.getContext('2d');
+            rCTX.translate(rCan.width/2,rCan.height/2);
+            rCTX.rotate(this.angle*Math.PI/180);
+            rCTX.drawImage(this.asset.scaled, -this.asset.scaled.width/2,-this.asset.scaled.height/2,this.asset.scaled.width,this.asset.scaled.height);
+            this.asset.rotations[key] = rCan;
+        } else {
+            rCan = this.asset.rotations[key];
+        }
+    }
+    ctx.drawImage(rCan, 0,0, this.width*game.scale*mod, this.height*game.scale*mod, this.x*game.scale, this.y*game.scale, this.width*game.scale*mod, this.height*game.scale*mod);    
+}
+JxlSprite.prototype.updateAnimation = function(game, time) {
+    if((this._curAnim != null) && (this._curAnim.delay > 0) && (this._curAnim.looped || !this.finished )) {
+        this._frameTimer += time;
+        if(this._frameTimer > this._curAnim.delay) {
+            this._frameTimer -= this._curAnim.delay;
+            if(this._caf == this._curAnim.frames.length-1) {
+                if(this._curAnim.looped) this._caf = 0;
+                this.finished = true;
+            } else {
+                this._caf++;
+            }
+            this._curFrame = this._curAnim.frames[this._caf];
+        }
+    }
+}
+JxlSprite.prototype.addAnimation = function(name, frames, frameRate, looped ){
+    if(frameRate == undefined)
+        frameRate = 0;
+    if(looped == undefined)
+        looped = true;
+    this._animations[name] = new JxlAnim(name, frames, frameRate, looped);
+}
+JxlSprite.prototype.update = function(game, time) {
+    this.updateAnimation(game, time);
+}
+JxlSprite.prototype.move = function(time, distance) {
     this.x += distance[0]/time;
     this.y += distance[1]/time;
 }
 
-TileMap.Inherits(GameObject);
-function TileMap(x, y) {
-    this.GameObject(x, y);
+function JxlAnim(name, frames, frameRate, looped){
+    this.name = name;
+    this.delay = 0;
+    if(frameRate > 0)
+        this.delay = 1000/frameRate;
+    this.frames = frames;
+    this.looped = looped;
+}
+JxlTileMap.Inherits(JxlObject);
+function JxlTileMap(x, y) {
+    this.JxlObject(x, y);
     this.widthInTiles = 0;
     this.heightInTiles = 0;
     this._data;
@@ -249,11 +381,11 @@ function TileMap(x, y) {
     this.startingIndex = 0;
     this._pixels;
     this.auto = 0;
-    this._block = new GameObject();
+    this._block = new JxlObject();
     this.tileGraphic;
     
 }
-TileMap.prototype.loadMap  = function(Game, MapData, TileGraphic, TileWidth, TileHeight) {
+JxlTileMap.prototype.loadMap  = function(Game, MapData, TileGraphic, TileWidth, TileHeight) {
     var c, cols, rows = MapData.split("\n");
     this.heightInTiles = rows.length;
     this._data = [];
@@ -307,8 +439,8 @@ TileMap.prototype.loadMap  = function(Game, MapData, TileGraphic, TileWidth, Til
     return this;
 }
 
-TileMap.prototype.draw = function(ctx, game) {
-    var _point = new GamePoint(this.x,this.y);
+JxlTileMap.prototype.render = function(ctx, game) {
+    var _point = this.getScreenXY();
     var _flashPoint = new GamePoint(_point.x, _point.y);
     
     var tx = Math.floor(-_point.x/this._tileWidth);
@@ -339,7 +471,7 @@ TileMap.prototype.draw = function(ctx, game) {
     }
 }
 
-TileMap.prototype.updateTile = function(index){
+JxlTileMap.prototype.updateTile = function(index){
     if(this._data[index] < this.drawIndex) {
         this._rects[index] = null;
         return;
@@ -499,7 +631,7 @@ AssetManager.prototype.loadAsset = function(type, name, src, callback, batch) {
             ctx.drawImage(this, 0, 0);
             var id = ctx.getImageData(0, 0, this.width, this.height);
             var nd = ctx.createImageData(this.width*self.game.scale, this.height*self.game.scale);
-          
+            
             for(var x=0; x < this.width*self.game.scale; x++) {
                 for(var y=0; y < this.height*self.game.scale; y++){
                     var i = (Math.floor((y/self.game.scale))*this.width+Math.floor(x/self.game.scale))*4;
@@ -515,6 +647,8 @@ AssetManager.prototype.loadAsset = function(type, name, src, callback, batch) {
             ctx.clearRect(0,0,can.width,can.height);
             ctx.putImageData(nd, 0, 0);
             this.scaled = can;
+            this.scaledCTX = ctx;
+            this.rotations = {};
             if(callback) callback(this);
         });
     break;
