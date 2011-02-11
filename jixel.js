@@ -35,6 +35,7 @@ Function.prototype.Override = function (fnSuper, stMethod)
 }
 
 var objID = 0;
+var jxlU = new JxlU();
 /*** Game Objects ***/
 function Jixel(canvas) {
     /*** Setup Core ***/
@@ -42,11 +43,11 @@ function Jixel(canvas) {
     this.scale = 4;
     this.ctx = canvas.getContext('2d');
     this.bufferCanvas = $('<canvas/>')[0];
-    this.width(240);
-    this.height(160);
+    this._width(240);
+    this._height(160);
     this.buffer = this.bufferCanvas.getContext('2d');
     this.gameObjects = {};
-    this.refresh = 33;
+    this.refresh = 16;
     this.running = false;
     this.am = new AssetManager(this);
     this.audio = new AudioManager(this);
@@ -56,7 +57,8 @@ function Jixel(canvas) {
     this.keys = {};
     this._showFPS = false;
     var self = this;
-    
+    this._scrollTarget = new JxlPoint();
+    this.unfollow();
     /*** Setup UI ***/
     this.ui = {};
     this.ui.fps = $('<div/>').css({
@@ -126,6 +128,59 @@ Jixel.prototype.toggleFPS = function() {
         this.hideFPS();
     }
 }
+Jixel.prototype.follow = function(target, lerp) {
+    if(lerp == undefined) lerp = 1;
+    this.followTarget= target;
+    this.followLerp = lerp;
+    console.log(this.width >> 1);
+    this._scrollTarget.x = (this.width >> 1)-this.followTarget.x-(this.followTarget.width>>1);
+    this._scrollTarget.y = (this.height >> 1)-this.followTarget.y-(this.followTarget.height>>1);
+    
+    this.scroll.x = this._scrollTarget.x;
+    this.scroll.y = this._scrollTarget.y;
+    this.doFollow(0);
+}
+Jixel.prototype.doFollow = function(time) {
+    if(this.followTarget != null) {
+        this._scrollTarget.x = (this.width>>1)-this.followTarget.x-(this.followTarget.width>>1);
+        this._scrollTarget.y = (this.height>>1)-this.followTarget.y-(this.followTarget.height>>1);
+        if((this.followLead != null)){
+            this._scrollTarget.x -= this.followTarget.velocity.x*this.followLead.x;
+           this. _scrollTarget.y -= this.followTarget.velocity.y*this.followLead.y;
+        }
+        this.scroll.x += (this._scrollTarget.x-this.scroll.x)*this.followLerp*time;
+        this.scroll.y += (this._scrollTarget.y-this.scroll.y)*this.followLerp*time;
+        
+        if(this.followMin != null) {
+            if(this.scroll.x > this.followMin.x)
+                this.scroll.x = this.followMin.x;
+            if(this.scroll.y > this.followMin.y)
+                this.scroll.y = this.followMin.y;
+        }
+        
+        if(this.followMax != null) {
+            if(this.scroll.x < this.followMax.x)
+                this.scroll.x = this.followMax.x;
+            if(this.scroll.y < this.followMax.y)
+                this.scroll.y = this.followMax.y;
+        }
+    }
+}
+Jixel.prototype.unfollow = function() {
+    this.followTarget = null;
+    this.followLead = null;
+    this.followLerp = 1;
+    this.followMin = null;
+    this.followMax = null;
+    if(this.scroll == null)
+        this.scroll = new JxlPoint();
+    else
+        this.scroll.x = scroll.y = 0;
+    if(this._scrollTarget == null)
+        this._scrollTarget = new JxlPoint();
+    else
+        this._scrollTarget.x = this._scrollTarget.y = 0;
+}
 Jixel.prototype.showFPS = function() {
     if(!this._showFPS) {
         this._showFPS = true;
@@ -138,17 +193,19 @@ Jixel.prototype.hideFPS = function() {
         this.ui.fps.hide();
     }
 }
-Jixel.prototype.width = function(width) {
+Jixel.prototype._width = function(width) {
     if(width != undefined) {
         this.bufferCanvas.width = width;
         this.screenWidth(width*this.scale);
+        this.width = width;
     }
     return this.bufferCanvas.width; 
 }
-Jixel.prototype.height = function(height) {
+Jixel.prototype._height = function(height) {
     if(height != undefined) {
         this.bufferCanvas.height = height;
         this.screenHeight(height*this.scale);
+        this.height = height;
     }
     return this.bufferCanvas.height;
 }
@@ -190,7 +247,7 @@ Jixel.prototype.start = function() {
             if(self.running) {
                 self.date = new Date();
                 var curTime = self.date.getTime();
-                self.update(curTime - self.lastUpdate);
+                self.update((curTime - self.lastUpdate)/1000);
                 self.lastUpdate = curTime;
             }
         }, this.refresh);
@@ -198,8 +255,8 @@ Jixel.prototype.start = function() {
 }
 Jixel.prototype.changeScale = function(scale) {
     this.scale = scale;
-    this.width(this.width());
-    this.height(this.height());
+    this._width(this.width);
+    this._height(this.height);
     this.am.reload('image');
 }
 Jixel.prototype.add = function(obj) {
@@ -210,15 +267,17 @@ Jixel.prototype.destroyObject = function(obj) {
 }
 Jixel.prototype.update = function(timeBetween) {
     // Do FPS Update
+    this.doFollow(timeBetween);
     if(this.showFPS) {
-        this.ui.fps.html(Math.floor(1000/timeBetween));
+        this.ui.fps.html(Math.floor(1/timeBetween));
     }
     // Do AudioUpdates
     this.audio.update(timeBetween);
     // Do GameUpdates
     for(var x in this.gameObjects) {
         this.gameObjects[x].update(this, timeBetween);
-    }    
+    }
+
     // Now Draw
     this.ctx.clearRect(0,0, this.screenWidth(), this.screenHeight());
     //this.buffer.clearRect(0,0, this.width(), this.height());
@@ -237,6 +296,7 @@ Jixel.prototype.click = function(e) {
     //figure out where they clicked
 }
 function JxlObject(x, y, width, height) {
+    this._point = new JxlPoint(); // preallocated point ... not sure if want
     this.id = objID;
     objID++;
     if(x == undefined) {
@@ -249,12 +309,17 @@ function JxlObject(x, y, width, height) {
     this.width = width;
     this.height = height;
     this.mass = 1;
+    this.visible = true;
+    this.scrollFactor = new JxlPoint(1, 1);
 }
 //Override Me.
 JxlObject.prototype.update = function() {}
 JxlObject.prototype.render = function() {}
-JxlObject.prototype.getScreenXY = function() {
-    return new GamePoint(this.x, this.y);
+JxlObject.prototype.getScreenXY = function(game, point) {
+    if(point == undefined) point = new JxlPoint();
+    point.x = Math.floor(this.x+jxlU.roundingError)+Math.floor(game.scroll.x*this.scrollFactor.x);
+    point.y = Math.floor(this.y+jxlU.roundingError)+Math.floor(game.scroll.y*this.scrollFactor.y);
+    return point;
 }
 
 JxlSprite.Inherits(JxlObject);
@@ -264,7 +329,7 @@ function JxlSprite(asset, x, y, width, height) {
     this._alpha = 1;
     this._color = 0x00ffffff;
     this._blend = null;
-    this.scale = new GamePoint(1,1);
+    this.scale = new JxlPoint(1,1);
     this._facing = 1;
     this._animations = {};
     this._flipped = 0;
@@ -272,6 +337,7 @@ function JxlSprite(asset, x, y, width, height) {
     this._frameTimer = 0;
     this.finished = false;
     this._caf = 0;
+    this.offset = new JxlPoint();
     this._curAnim = null;
    
     //Could probably reduce memory/cpu here
@@ -311,9 +377,12 @@ JxlSprite.prototype.calcFrame = function(game) {
 }
 // Rotations are stored on the fly instead of prebaked since they are cheaper here than in flixel
 JxlSprite.prototype.render = function(ctx, game){
+    if(!this.visible) return;
+    this._point = this.getScreenXY(game, this._point);
+    
     this.calcFrame(game);
-     var rCan = this._graphic;
-     var mod = 1;
+    var rCan = this._graphic;
+    var mod = 1;
      
     //lets not worry about frames for now.
     if(this.angle !=0) {
@@ -332,7 +401,7 @@ JxlSprite.prototype.render = function(ctx, game){
             rCan = this.asset.rotations[key];
         }
     }
-    ctx.drawImage(rCan, 0,0, this.width*game.scale*mod, this.height*game.scale*mod, this.x*game.scale, this.y*game.scale, this.width*game.scale*mod, this.height*game.scale*mod);    
+    ctx.drawImage(rCan, 0,0, this.width*game.scale*mod, this.height*game.scale*mod, this._point.x *game.scale, this._point.y*game.scale, this.width*game.scale*mod, this.height*game.scale*mod);    
 }
 JxlSprite.prototype.updateAnimation = function(game, time) {
     if((this._curAnim != null) && (this._curAnim.delay > 0) && (this._curAnim.looped || !this.finished )) {
@@ -360,15 +429,21 @@ JxlSprite.prototype.update = function(game, time) {
     this.updateAnimation(game, time);
 }
 JxlSprite.prototype.move = function(time, distance) {
-    this.x += distance[0]/time;
-    this.y += distance[1]/time;
+    this.x += distance[0]*time;
+    this.y += distance[1]*time;
+}
+JxlSprite.prototype.getScreenXY = function(game, point) {
+    if(point == undefined) point = new JxlPoint();
+    point.x = Math.floor(this.x+jxlU.roundingError)+Math.floor(game.scroll.x*this.scrollFactor.x) - this.offset.x;
+    point.y = Math.floor(this.y+jxlU.roundingError)+Math.floor(game.scroll.y*this.scrollFactor.y) - this.offset.y;
+    return point;
 }
 
 function JxlAnim(name, frames, frameRate, looped){
     this.name = name;
     this.delay = 0;
     if(frameRate > 0)
-        this.delay = 1000/frameRate;
+        this.delay = frameRate;
     this.frames = frames;
     this.looped = looped;
 }
@@ -430,10 +505,10 @@ JxlTileMap.prototype.loadMap  = function(Game, MapData, TileGraphic, TileWidth, 
     for(i=0; i < totalTiles; i++)
         this.updateTile(i);
         
-    this._screenRows = Math.ceil(game.height()/this._tileHeight)+1;
+    this._screenRows = Math.ceil(game.height/this._tileHeight)+1;
     if(this._screenRows > this.heightInTiles)
         this._screenRows = this.heightInTiles;
-    this._screenCols = Math.ceil(game.width()/this._tileWidth)+1;
+    this._screenCols = Math.ceil(game.width/this._tileWidth)+1;
     if(this._screenCols > this.widthInTiles)
         this._screenCols = this.widthInTiles;
     
@@ -441,11 +516,11 @@ JxlTileMap.prototype.loadMap  = function(Game, MapData, TileGraphic, TileWidth, 
 }
 
 JxlTileMap.prototype.render = function(ctx, game) {
-    var _point = this.getScreenXY();
-    var _flashPoint = new GamePoint(_point.x, _point.y);
+    this._point = this.getScreenXY(game,this._point);
+    var _flashPoint = new JxlPoint(this._point.x, this._point.y);
     
-    var tx = Math.floor(-_point.x/this._tileWidth);
-    var ty = Math.floor(-_point.y/this._tileHeight);
+    var tx = Math.floor(-this._point.x/this._tileWidth);
+    var ty = Math.floor(-this._point.y/this._tileHeight);
     if(tx < 0) tx = 0;
     if(tx > this.widthInTiles-this._screenCols) tx = this.widthInTiles-this._screenCols;
     if(ty < 0) ty = 0;
@@ -486,13 +561,50 @@ JxlTileMap.prototype.updateTile = function(index){
     this._rects[index] = [rx,ry,this._tileWidth,this._tileHeight];
 }
 
-function GamePoint(x, y){
+function JxlPoint(x, y){
+    if(x == undefined) x = 0;
+    if(y == undefined) y = 0;
+    
     this.x = x;
     this.y = y;
 }
 
-/*** Util ***/
-
+/*** Universe ***/
+function JxlU() {
+    this.roundingError = 0.0000001;
+    this.quadTreeDivisions = 3;
+}
+		
+JxlU.prototype.rotatePoint = function(x, y, pivotX, pivotY, angle, p) {
+    if(p == undefined) p = new JxlPoint();
+    var radians = -angle / 180 * Math.PI;
+    var dx = x-pivotX;
+    var dy = pivotY-y;
+    p.x = pivotX + Math.cos(radians)*dx - Math.sin(radians)*dy;
+    p.y = pivotY - (Math.sin(radians)*dx + Math.cos(radians)*dy);
+    return p;
+}
+JxlU.prototype.getAngle = function(x, y) {
+    return Math.atan2(y, x) * 180/Math.PI;
+}
+JxlU.prototype.computeVelocity = function(time, velocity, acceleration, drag, max) {
+    if(acceleration == undefined) acceleration = 0;
+    if(drag == undefined) drag = 0;
+    if(max == undefined) max =  10000;
+    
+    if(acceleration != 0) velocity += acceleration*time;
+    else if(drag != 0) {
+        var d = drag*time;
+        if(velocity - d > 0) velocity -= d;
+        else if (velocity + d < 0) velocity +=d;
+        else velocity = 0;
+    }
+    if((velocity != 0) && (max != 10000)) {
+        if(velocity > max) velocity = max;
+        else if(velocity < -max) velocity = -max;
+    }
+    return velocity;
+}
 /*** Utilities ***/
 function AudioManager(game) {
     this.game = game;
@@ -614,6 +726,8 @@ AssetManager.prototype.loadAsset = function(type, name, src, callback, batch) {
         $(temp).data('type', 'audio');
         this.assets[name] = temp;
         self.game.audio.add(name, temp);
+        
+        
         if(callback) callback(temp);
     
         break;
