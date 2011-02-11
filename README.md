@@ -5,7 +5,7 @@ An open source game engine based on Flixel (www.flixel.org).
 
 DEMOS
 -----
-http://www.jixel.org/JIXEL-DEMO
+http://www.jixel.org/Jixel-Demo
 
 
 TODO
