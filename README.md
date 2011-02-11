@@ -10,22 +10,23 @@ http://www.jixel.org/JIXEL-DEMO
 
 TODO
 ----
-AutoTileMaps
-Collisions
-Sprite Coloration
-Sprite Blend Modes
-Emitters
-Scenes
-Camera
+* AutoTileMaps
+* Collisions
+* Sprite Coloration
+* Sprite Blend Modes
+* Emitters
+* Scenes
+
 
 
 Done
 ----
-Sprite Animations
-Audio Channels
-Loader
-Sprites
-GameObject
-Upscaling
-Input
-TileMaps
+* Sprite Animations
+* Audio Channels
+* Loader
+* Sprites
+* GameObject
+* Upscaling
+* Input
+* TileMaps
+* Camera
