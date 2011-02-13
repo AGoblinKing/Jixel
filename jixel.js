@@ -1,36 +1,26 @@
-Function.prototype.Inherits = function (fnSuper)
-{
+Function.prototype.Inherits = function (fnSuper) {
     var prop;
-
-    if (this == fnSuper)
-        {
+    if (this == fnSuper) {
         alert("Error - cannot derive from self");
         return;
+    }
+    for (prop in fnSuper.prototype) {
+    if (typeof(fnSuper.prototype[prop]) == "function" && !this.prototype[prop]) {
+        this.prototype[prop] = fnSuper.prototype[prop];
         }
-
-    for (prop in fnSuper.prototype)
-        {
-        if (typeof(fnSuper.prototype[prop]) == "function" && !this.prototype[prop])
-            {
-            this.prototype[prop] = fnSuper.prototype[prop];
-            }
-        }
-
+    }
     this.prototype[fnSuper.StName()] = fnSuper;
 }
-Function.prototype.StName = function ()
-{
-    var st;
 
+Function.prototype.StName = function () {
+    var st;
     st = this.toString();
     st = st.substring(st.indexOf(" ")+1, st.indexOf("("));
     if (st.charAt(0) == "(")
         st = "function ...";
-
     return st;
 }
-Function.prototype.Override = function (fnSuper, stMethod)
-{
+Function.prototype.Override = function (fnSuper, stMethod) {
     this.prototype[fnSuper.StName() + "_" + stMethod] = fnSuper.prototype[stMethod];
 }
 
@@ -132,7 +122,6 @@ Jixel.prototype.follow = function(target, lerp) {
     if(lerp == undefined) lerp = 1;
     this.followTarget= target;
     this.followLerp = lerp;
-    console.log(this.width >> 1);
     this._scrollTarget.x = (this.width >> 1)-this.followTarget.x-(this.followTarget.width>>1);
     this._scrollTarget.y = (this.height >> 1)-this.followTarget.y-(this.followTarget.height>>1);
     
@@ -295,25 +284,229 @@ Jixel.prototype.update = function(timeBetween) {
 Jixel.prototype.click = function(e) {
     //figure out where they clicked
 }
+function JxlPoint(x, y){
+    if(x == undefined) x = 0;
+    if(y == undefined) y = 0;
+    
+    this.x = x;
+    this.y = y;
+}
+JxlRect.Inherits(JxlPoint);
+function JxlRect(x, y, width, height) {
+    this.JxlPoint(x, y);
+    if(width == undefined) width = 0;
+    if(height == undefined) height = 0;
+    this.width = width;
+    this.height = height;
+}
+JxlRect.prototype.left = function() {
+    return this.x;
+}
+JxlRect.prototype.right = function() {
+    return this.x + this.width;
+}
+JxlRect.prototype.top = function() {
+    return this.y;
+}
+JxlRect.prototype.bottom = function() {
+    return this.y+this.height;
+}
+
+JxlObject.Inherits(JxlRect);
 function JxlObject(x, y, width, height) {
+    this.JxlRect(x, y, width, height);
     this._point = new JxlPoint(); // preallocated point ... not sure if want
     this.id = objID;
     objID++;
-    if(x == undefined) {
-        this.x = 0;
-        this.y = 0;
-    } else {
-        this.x = x;
-        this.y = y;
-    }
-    this.width = width;
-    this.height = height;
-    this.mass = 1;
+
+    this.collideLeft = true;
+    this.collideRight = true;
+    this.collideTop = true;
+    this.collideBottom = true;
+    
+    this.origin = new JxlPoint();
+    this.velocity = new JxlPoint();
+    this.acceleration = new JxlPoint();
+    this._pZero = new JxlPoint();
+    this.drag = new JxlPoint();
+    this.maxVelocity = new JxlPoint(10000, 10000);
+    
+    this.angle = 0;
+    this.angularVelocity = 0;
+    this.angularAcceleration = 0;
+    this.maxAngular = 10000;
+    
+    this.thrust = 0;
     this.visible = true;
+    this.active = true;
+    this.exists = true;
+    this._solid = true;
+    this._fixed = false;
+    this.moves = true;
+    
+    this.health = 1;
+    this.dead = false;
+    this._flicker = false;
+    this._flickerTimer = -1;
     this.scrollFactor = new JxlPoint(1, 1);
+    
+    this.colHullX = new JxlRect();
+    this.colHullY = new JxlRect();
+    this.colVector = new JxlPoint();
+    this.colOffsets = new Array(new JxlPoint());
+    this._group = false;
 }
-//Override Me.
-JxlObject.prototype.update = function() {}
+JxlObject.prototype.refreshHulls = function() {
+    this.colHullX.x = this.x;
+    this.colHullX.y = this.y;
+    this.colHullX.width = this.width;
+    this.colHullX.height = this.height;
+    this.colHullY.x = this.x;
+    this.colHullY.y = this.y;
+    this.colHullY.width = this.width;
+    this.colHullY.height = this.height;
+}
+JxlObject.prototype.updateMotion = function(game, time) {
+    if(!this.moves) return;
+    if(this._solid) this.refreshHulls();
+    this.onFloor = false;
+    var vc = (jxlU.computeVelocity(time, this.angularVelocity, this.angularAcceleration, this.angularDrag, this.maxAngular) - this.angularVelocity)/2;
+    this.angularVelocity += vc;
+    this.angle += this.angularVelocity*time;
+    this.angularVelocity += vc;
+    
+    var thrustComponents;
+    if(this.thrust != 0 ) {
+        thrustComponents = jxlU.rotatePoint(-this.thrust, 0, 0, 0,this.angle);
+        var maxComponents = jxlU.rotatePoint(-this.maxThrust, 0, 0, 0, this.angle);
+        var max = Math.abs(maxComponents.x);
+        if(max > Math.abs(maxComponents.y)) maxComponents.y = max;
+        else max = Math.abs(maxComponents.y);
+        this.maxVelocity.x = this.maxVelocity.y = Math.abs(max);
+    } else {
+        thrustComponents = this._pZero;
+    }
+    
+    vc = (jxlU.computeVelocity(time, this.velocity.x, this.acceleration.x+thrustComponents.x,this.drag.x, this.maxVelocity.x) - this.velocity.x)/2;
+    this.velocity.x += vc;
+    var xd = this.velocity.x * time;
+    this.velocity.x += vc;
+    
+    vc = (jxlU.computeVelocity(time, this.velocity.y, this.acceleration.y+thrustComponents.y, this.drag.y, this.maxVelocity.y) - this.velocity.y)/2;
+    this.velocity.y += vc;
+    var yd = this.velocity.y * time;
+    this.velocity.y += vc;
+    
+    this.x += xd;
+    this.y += yd;
+    
+    if(!this._solid) return;
+    
+    this.colVector.x = xd;
+    this.colVector.y = yd;
+    this.colHullX.width += Math.abs(xd);
+    if(this.colVector.x < 0) this.colHullX.x += this.colVector.x;
+    this.colHullY.x = this.x;
+    this.colHullY.height += Math.abs(this.colVector.y);
+    if(this.colVector.y < 0) this.colHullY.y += this.colVector.y;
+}
+JxlObject.prototype.updateFlickering = function(game, time) {
+    if(this.flickering()) {
+        if(this._flickerTimer > 0) {
+            this._flickerTimer -= time;
+            if(this._flickerTimer == 0) this._flickerTimer = -1;
+        }
+        if(this._flickerTimer < 0) this.flicker(-1);
+        else {
+            this._flicker = !this._flicker;
+            this.visible = !this._flicker;
+        }
+    }
+}
+JxlObject.prototype.update = function(game, time) {
+    this.updateMotion(game, time);
+    this.updateFlickering(game, time);
+}
+JxlObject.prototype.flicker = function(duration) {
+    if(duration == undefined) duration = 1;
+    this._flickerTimer = duration;
+    if(this._flickerTimer < 0) {
+        this._flicker = false;
+        this.visible = true;
+    }
+}
+JxlObject.prototype.reset = function(x, y) {
+    if(x == undefined) x = 0;
+    if(y == undefined) y = 0;
+    this.x = x;
+    this.y = y;
+    this.exists = true;
+    this.dead = false;
+}
+JxlObject.prototype.overlaps = function(object) {
+    this._point = this.getScreenXY(this._point);
+    var tx = this._point.x;
+    var ty = this._point.y;
+    var tw = this.width;
+    var th = this.height;
+    if(this.isSprite != undefined) {
+        var ts = this;
+        tw = ts.frameWidth;
+        th = ts.frameHeight;
+    }
+    this._point = object.getScreenXY(this._point);
+    var ox = this._point.x;
+    var oy = this._point.y;
+    var ow = this.object.width;
+    var oh = this.object.height;
+    
+    if(object.isSprite != undefined) {
+        var os = object;
+        ow = os.frameWidth;
+        oh = os.frameHeight;
+    }
+    if((ox <= tx-ow) || (ox >= tx+tw) || (oy <= ty-oh) || (oy >= ty+th))
+        return false;
+    return true; 
+}
+JxlObject.prototype.overlapsPoint = function(game, x, y, perPixel) {
+    if(perPixel == undefined) perPixel = false;
+    
+    x += Math.floor(game.scroll.x);
+    y += Math.floor(game.scroll.y);
+    this._point = this.getScreenXY(this._point);
+    if((x <= this._point.x) || (x >= this._point.x+this.width) || (y <= this._point.y) || (y >= this._point.y+this.height))
+        return false;
+    return true;
+}
+JxlObject.prototype.collide = function(object) {
+    if(object == undefined) this;
+    return jxlU.collide(this, object);
+}
+JxlObject.prototype.preCollide = function(object) {}
+JxlObject.prototype.hitLeft = function(contact, velocity) {
+    if(!this.fixed) this.velocity.x = velocity;
+}
+JxlObject.prototype.hitRight = function(contact, velocity) {
+    this.hitLeft(contact, velocity);
+}
+JxlObject.prototype.hitTop = function(contact, velocity) {
+    if(!this.fixed) this.velocity.y = velocity;
+}
+JxlObject.prototype.hitBottom = function(contact, velocity) {
+    this.onFloor = true;
+    if(!this.fixed) this.velocity.y = velocity;
+}
+JxlObject.prototype.flickering = function() {
+    return this._flickerTimer >= 0;
+}
+JxlObject.prototype.hurt = function(damage) {
+    if((this.health -= damage) <= 0 ) this.kill();
+}
+JxlObject.prototype.kill = function() {
+    this.exists = false;
+    this.dead = true;
+}
 JxlObject.prototype.render = function() {}
 JxlObject.prototype.getScreenXY = function(game, point) {
     if(point == undefined) point = new JxlPoint();
@@ -324,6 +517,7 @@ JxlObject.prototype.getScreenXY = function(game, point) {
 
 JxlSprite.Inherits(JxlObject);
 function JxlSprite(asset, x, y, width, height) {
+    this.isSprite = true;
     this.JxlObject(x, y, width, height);
     this.angle = 0;
     this._alpha = 1;
@@ -426,11 +620,9 @@ JxlSprite.prototype.addAnimation = function(name, frames, frameRate, looped ){
     this._animations[name] = new JxlAnim(name, frames, frameRate, looped);
 }
 JxlSprite.prototype.update = function(game, time) {
+    this.updateMotion(game, time);
     this.updateAnimation(game, time);
-}
-JxlSprite.prototype.move = function(time, distance) {
-    this.x += distance[0]*time;
-    this.y += distance[1]*time;
+    this.updateFlickering(game, time);
 }
 JxlSprite.prototype.getScreenXY = function(game, point) {
     if(point == undefined) point = new JxlPoint();
@@ -438,7 +630,17 @@ JxlSprite.prototype.getScreenXY = function(game, point) {
     point.y = Math.floor(this.y+jxlU.roundingError)+Math.floor(game.scroll.y*this.scrollFactor.y) - this.offset.y;
     return point;
 }
+JxlSprite.prototype.overlapsPoint = function(game, x, y, perPixel) {
+    if(perPixel == undefined) perPixel = false;
+    
+    x -= Math.floor(game.scroll.x);
+    y -= Math.floor(game.scroll.y);
+    this._point = this.getScreenXY(this._point);
 
+    if((x <= this._point.x) || (x >= this._point.x+this.width) || (y <= this._point.y) || (y >= this._point.y+this.height))
+        return false;
+    return true;
+}
 function JxlAnim(name, frames, frameRate, looped){
     this.name = name;
     this.delay = 0;
@@ -561,15 +763,7 @@ JxlTileMap.prototype.updateTile = function(index){
     this._rects[index] = [rx,ry,this._tileWidth,this._tileHeight];
 }
 
-function JxlPoint(x, y){
-    if(x == undefined) x = 0;
-    if(y == undefined) y = 0;
-    
-    this.x = x;
-    this.y = y;
-}
-
-/*** Universe ***/
+/*** Utility ***/
 function JxlU() {
     this.roundingError = 0.0000001;
     this.quadTreeDivisions = 3;
