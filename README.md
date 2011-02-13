@@ -5,27 +5,28 @@ An open source game engine based on Flixel (www.flixel.org).
 
 DEMOS
 -----
-http://www.jixel.org/JIXEL-DEMO
+http://www.jixel.org/Jixel-Demo
 
 
 TODO
 ----
-AutoTileMaps
-Collisions
-Sprite Coloration
-Sprite Blend Modes
-Emitters
-Scenes
-Camera
+* AutoTileMaps
+* Collisions
+* Sprite Coloration
+* Sprite Blend Modes
+* Emitters
+* Scenes
+
 
 
 Done
 ----
-Sprite Animations
-Audio Channels
-Loader
-Sprites
-GameObject
-Upscaling
-Input
-TileMaps
+* Sprite Animations
+* Audio Channels
+* Loader
+* Sprites
+* GameObject
+* Upscaling
+* Input
+* TileMaps
+* Camera
