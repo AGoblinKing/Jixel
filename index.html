@@ -2,6 +2,7 @@
 <html>
   <head>
     <link type="text/css" rel="stylesheet" href="css/ui-lightness/jquery-ui.css"/>
+    <link href='http://fonts.googleapis.com/css?family=Geo' rel='stylesheet' type='text/css'>
     <script type="text/javascript" src="js/jquery.js"></script>
     <script type="text/javascript" src="js/jquery-ui.js"></script>
     <script type="text/javascript" src="jixel.js"></script>
@@ -46,7 +47,7 @@
         
           game.start();
           game.showFPS();
-         game.audio.play('keyboard', true, 0, 12.5, .4);
+       //  game.audio.play('keyboard', true, 0, 12.5, .4);
          $('body').append(can);
         }, function() {
           //could add loadBar here
@@ -90,7 +91,9 @@
         }
         if ('A' in game.keys) {
           this.velocity.x = this.speed;
+          this._flipped = true;
         } else if ('D' in game.keys) {
+          this._flipped = false;
           this.velocity.x = -1*this.speed;
         }
         if('SPACE' in game.keys) {
@@ -124,8 +127,11 @@
         margin:0px;
         padding:0px;
         overflow:hidden;
+        font-family:'Geo';
       }
-
+      .ui-widget {
+        font-family:'Geo' !important;
+      }
       #assets {
         display:none;
       }

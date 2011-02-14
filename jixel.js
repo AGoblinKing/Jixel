@@ -853,6 +853,11 @@ JxlGroup.prototype.sortHandler = function(Obj1, Obj2) {
     return 0;
 }
 JxlSprite.Inherits(JxlObject);
+JxlSprite.LEFT = 0;
+JxlSprite.RIGHT = 1;
+JxlSprite.UP = 2;
+JxlSprite.DOWN = 3;
+
 function JxlSprite(asset, x, y, width, height) {
     this.isSprite = true;
     this.JxlObject(x, y, width, height);
@@ -897,6 +902,7 @@ JxlSprite.prototype.play = function(name, force) {
 JxlSprite.prototype.calcFrame = function(game) {
     var rx = this._curFrame * this.width;
     var ry = 0;
+    
     if(rx > this.asset.width) {
         ry = Math.floor(rx/this.asset.width)*this.height;
         rx = rx % this.asset.width;
@@ -904,7 +910,12 @@ JxlSprite.prototype.calcFrame = function(game) {
     
     this._graphic.width = this.width*game.scale;
     this._graphic.height = this.height*game.scale;
+    if(this._flipped) {
+        this._graphicCTX.scale(-1,1);
+        this._graphicCTX.translate(-this._graphic.width,0);
+    }
     this._graphicCTX.drawImage(this.asset.scaled,rx*game.scale,ry*game.scale,this.width*game.scale, this.height*game.scale, 0,0,this.width*game.scale, this.height*game.scale );
+
 }
 // Rotations are stored on the fly instead of prebaked since they are cheaper here than in flixel
 JxlSprite.prototype.render = function(ctx, game){
@@ -932,7 +943,9 @@ JxlSprite.prototype.render = function(ctx, game){
             rCan = this.asset.rotations[key];
         }
     }
+    
     ctx.drawImage(rCan, 0,0, this.width*game.scale*mod, this.height*game.scale*mod, this._point.x *game.scale, this._point.y*game.scale, this.width*game.scale*mod, this.height*game.scale*mod);    
+
 }
 JxlSprite.prototype.updateAnimation = function(game, time) {
     if((this._curAnim != null) && (this._curAnim.delay > 0) && (this._curAnim.looped || !this.finished )) {
@@ -977,6 +990,14 @@ JxlSprite.prototype.overlapsPoint = function(game, x, y, perPixel) {
     if((x <= this._point.x) || (x >= this._point.x+this.width) || (y <= this._point.y) || (y >= this._point.y+this.height))
         return false;
     return true;
+}
+JxlSprite.prototype.getFacing = function() {
+    return this._facing;
+}
+JxlSprite.prototype.setFacing = function(Direction) {
+    var c = this._facing != Direction;
+    this._facing = Direction;
+    if(c) this.calcFrame();
 }
 function JxlAnim(name, frames, frameRate, looped){
     this.name = name;
