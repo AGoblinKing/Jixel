@@ -15,7 +15,7 @@ TODO
 * Sprite Blend Modes
 * Emitters
 * Scenes
-
+* Show Bounding boxes
 
 
 Done
