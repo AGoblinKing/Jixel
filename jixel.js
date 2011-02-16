@@ -1163,12 +1163,13 @@ JxlTileMap.prototype.overlaps = function(Core) {
         {
             if(c >= this.widthInTiles) break;
             dd = Math.floor(this._data[d+c]);
-            if(dd >= this.collideIndex)
+            if(dd >= this.collideIndex) {
                 blocks.push({
                     x : this.x + (ix+c) * this._tileWidth,
                     y : this.y + (iy+r) * this._tileHeight,
                     data : dd
-                });
+                });  
+            }
             c++;
         }
         r++;
@@ -1194,7 +1195,7 @@ JxlTileMap.overlapsPoint = function(X, Y, PerPixel) {
     );
     return  t >= this.collideIndex;
 }
-JxlTileMap.refreshHulls = function() {
+JxlTileMap.prototype.refreshHulls = function() {
     this.colHullX.x = 0;
     this.colHullX.y = 0;
     this.colHullX.width = this._tileWidth;
@@ -1204,12 +1205,7 @@ JxlTileMap.refreshHulls = function() {
     this.colHullY.width = this._tileWidth;
     this.colHullY.height = this._tileHeight;
 }
-JxlTileMap.preCollide = function(Obj) {
-    this.colHullX.x = 0;
-    this.colHullX.y = 0;
-    this.colHullY.x = 0;
-    this.colHullY.y = 0;
-    
+JxlTileMap.prototype.preCollide = function(Obj) {
     var r;
     var c;
     var rs;
@@ -1234,7 +1230,7 @@ JxlTileMap.preCollide = function(Obj) {
         while(c < iw)
         {
             if(Math.floor(this._data[rs+c]) >= this.collideIndex)
-                this.colOffsets[col++] = new FlxPoint(this.x + c * this._tileWidth, this.y + r * this._tileHeight);
+                this.colOffsets[col++] = new JxlPoint(this.x + c * this._tileWidth, this.y + r * this._tileHeight);
             c++;
         }
         rs += this.widthInTiles;
@@ -1243,7 +1239,7 @@ JxlTileMap.preCollide = function(Obj) {
     if(this.colOffsets.length != col)
         this.colOffsets.length = col;
 }
-JxlTileMap.ray = function(StartX, StartY, EndX, EndY, Result, Resolution) {
+JxlTileMap.prototype.ray = function(StartX, StartY, EndX, EndY, Result, Resolution) {
     Resolution = (Resolution === undefined) ? 1 : Resolution;
     var step = this._tileWidth;
     if(this._tileHeight < this._tileWidth) { step = this._tileHeight; }
@@ -1318,7 +1314,7 @@ JxlTileMap.ray = function(StartX, StartY, EndX, EndY, Result, Resolution) {
     }
     return false;
 }
-JxlTileMap.generateBoundingTiles = function() {
+JxlTileMap.prototype.generateBoundingTiles = function() {
     this.refresh = true;
     
     if((this._bbKey == null) || (this._bbKey.length <= 0))
