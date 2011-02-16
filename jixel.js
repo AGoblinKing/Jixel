@@ -26,9 +26,11 @@ Function.prototype.Override = function (fnSuper, stMethod) {
 
 var objID = 0;
 var jxlU = new JxlU();
+var jxlGame = null;
 /*** Game Objects ***/
 function Jixel(canvas) {
     /*** Setup Core ***/
+    this.jxlGame = jxlGame; // trying to ween off this, BB uses it tho
     this.canvas = canvas;
     this.scale = 4;
     this.ctx = canvas.getContext('2d');
@@ -49,6 +51,7 @@ function Jixel(canvas) {
     var self = this;
     this._scrollTarget = new JxlPoint();
     this.unfollow();
+    jxlU.setWorldBounds(0,0,this.width, this.height);
     /*** Setup UI ***/
     this.ui = {};
     this.ui.fps = $('<div/>').css({
@@ -340,8 +343,8 @@ function JxlObject(x, y, width, height) {
     this.visible = true;
     this.active = true;
     this.exists = true;
-    this._solid = true;
-    this._fixed = false;
+    this.solid = true;
+    this.fixed = false;
     this.moves = true;
     
     this.health = 1;
@@ -367,8 +370,9 @@ JxlObject.prototype.refreshHulls = function() {
     this.colHullY.height = this.height;
 }
 JxlObject.prototype.updateMotion = function(game, time) {
+ 
     if(!this.moves) return;
-    if(this._solid) this.refreshHulls();
+    if(this.solid) this.refreshHulls();
     this.onFloor = false;
     var vc = (jxlU.computeVelocity(time, this.angularVelocity, this.angularAcceleration, this.angularDrag, this.maxAngular) - this.angularVelocity)/2;
     this.angularVelocity += vc;
@@ -400,7 +404,7 @@ JxlObject.prototype.updateMotion = function(game, time) {
     this.x += xd;
     this.y += yd;
     
-    if(!this._solid) return;
+    if(!this.solid) return;
     
     this.colVector.x = xd;
     this.colVector.y = yd;
@@ -1007,18 +1011,35 @@ function JxlAnim(name, frames, frameRate, looped){
     this.frames = frames;
     this.looped = looped;
 }
+
 JxlTileMap.Inherits(JxlObject);
+JxlTileMap.OFF =  0;
+JxlTileMap.AUTO =  1;
+JxlTileMap.ALT = 2;
+
 function JxlTileMap(x, y) {
     this.JxlObject(x, y);
+    this.auto = JxlTileMap.OFF;
+    this.collideIndex = 1;
+    this.startingIndex = 0;
+    this.drawIndex = 1;
     this.widthInTiles = 0;
     this.heightInTiles = 0;
-    this._data;
-    this.drawIndex = 1;
-    this.startingIndex = 0;
-    this._pixels;
-    this.auto = 0;
+    this.totalTiles = 0;
+    this._buffer = null;
+    this._bufferLoc = new JxlPoint();
+    this._flashRect2 = new JxlRect();
+    this._flashRect = this._flashRect2;
+    this._data = null;
+    this._tileWidth = 0;
+    this._tileHeight = 0;
+    this._rects = null;
+    this._pixels = null;
     this._block = new JxlObject();
-    this.tileGraphic;
+    this._block.width = this._block.height = 0;
+    this._block.fixed = true;
+    this._callbacks = new Array();
+    this.fixed = true;
     
 }
 JxlTileMap.prototype.loadMap  = function(Game, MapData, TileGraphic, TileWidth, TileHeight) {
@@ -1120,6 +1141,271 @@ JxlTileMap.prototype.updateTile = function(index){
     }
     this._rects[index] = [rx,ry,this._tileWidth,this._tileHeight];
 }
+JxlTileMap.prototype.overlaps = function(Core) {
+    var d;
+    
+    var dd;
+    var blocks = new Array();
+    
+    //First make a list of all the blocks we'll use for collision
+    var ix = Math.floor((Core.x - this.x) / this._tileWidth);
+    var iy = Math.floor((Core.y - this.y) / this._tileHeight);
+    var iw = Math.ceil(Core.width / this._tileWidth) + 1;
+    var ih = Math.ceil(Core.height / this._tileHeight) + 1;
+    var r = 0;
+    var c;
+    while(r < ih)
+    {
+        if(r >= this.heightInTiles) break;
+        d = (iy+r)*this.widthInTiles+ix;
+        c = 0;
+        while(c < iw)
+        {
+            if(c >= this.widthInTiles) break;
+            dd = Math.floor(this._data[d+c]);
+            if(dd >= this.collideIndex)
+                blocks.push({
+                    x : this.x + (ix+c) * this._tileWidth,
+                    y : this.y + (iy+r) * this._tileHeight,
+                    data : dd
+                });
+            c++;
+        }
+        r++;
+    }
+    
+    //Then check for overlaps
+    var bl = blocks.length;
+    var hx = false;
+    var i = 0;
+    while(i < bl)
+    {
+        this._block.x = blocks[i].x;
+        this._block.y = blocks[i++].y;
+        if(this._block.overlaps(Core))
+            return true;
+    }
+    return false;
+}
+JxlTileMap.overlapsPoint = function(X, Y, PerPixel) {
+    var t = getTile(
+            Math.floor( (X-this.x) / this._tileWidth ),
+            Math.floor( (Y-this.y) / this._tileHeight)
+    );
+    return  t >= this.collideIndex;
+}
+JxlTileMap.refreshHulls = function() {
+    this.colHullX.x = 0;
+    this.colHullX.y = 0;
+    this.colHullX.width = this._tileWidth;
+    this.colHullX.height = this._tileHeight;
+    this.colHullY.x = 0;
+    this.colHullY.y = 0;
+    this.colHullY.width = this._tileWidth;
+    this.colHullY.height = this._tileHeight;
+}
+JxlTileMap.preCollide = function(Obj) {
+    this.colHullX.x = 0;
+    this.colHullX.y = 0;
+    this.colHullY.x = 0;
+    this.colHullY.y = 0;
+    
+    var r;
+    var c;
+    var rs;
+    var col = 0;
+    var ix = Math.floor((Obj.x - this.x)/this._tileWidth);
+    var iy = Math.floor((Obj.y - this.y)/this._tileHeight);
+    var iw = ix + Math.ceil(Obj.width/this._tileWidth)+1;
+    var ih = iy + Math.ceil(Obj.height/this._tileHeight)+1;
+    if(ix < 0)
+        ix = 0;
+    if(iy < 0)
+        iy = 0;
+    if(iw > this.widthInTiles)
+        iw = this.widthInTiles;
+    if(ih > this.heightInTiles)
+        ih = this.heightInTiles;
+    rs = iy * this.widthInTiles;
+    r = iy;
+    while(r < ih)
+    {
+        c = ix;
+        while(c < iw)
+        {
+            if(Math.floor(this._data[rs+c]) >= this.collideIndex)
+                this.colOffsets[col++] = new FlxPoint(this.x + c * this._tileWidth, this.y + r * this._tileHeight);
+            c++;
+        }
+        rs += this.widthInTiles;
+        r++;
+    }
+    if(this.colOffsets.length != col)
+        this.colOffsets.length = col;
+}
+JxlTileMap.ray = function(StartX, StartY, EndX, EndY, Result, Resolution) {
+    Resolution = (Resolution === undefined) ? 1 : Resolution;
+    var step = this._tileWidth;
+    if(this._tileHeight < this._tileWidth) { step = this._tileHeight; }
+    step /= Resolution;
+    var dx = EndX - StartX;
+    var dy = EndY - StartY;
+    var distance = Math.sqrt(dx*dx + dy*dy);
+    var steps = Math.ceil(distance/step);
+    var stepX = dx/steps;
+    var stepY = dy/steps;
+    var curX = StartX - stepX;
+    var curY = StartY - stepY;
+    var tx;
+    var ty;
+    var i = 0;
+    while(i < steps)
+    {
+        curX += stepX;
+        curY += stepY;
+        
+        if((curX < 0) || (curX > width) || (curY < 0) || (curY > height))
+        {
+            i++;
+            continue;
+        }
+        
+        tx = curX/this._tileWidth;
+        ty = curY/this._tileHeight;
+        if((Math.floor(this._data[ty*this.widthInTiles+tx])) >= this.collideIndex)
+        {
+            //Some basic helper stuff
+            tx *= this._tileWidth;
+            ty *= this._tileHeight;
+            var rx = 0;
+            var ry = 0;
+            var q;
+            var lx = curX-stepX;
+            var ly = curY-stepY;
+            
+            //Figure out if it crosses the X boundary
+            q = tx;
+            if(dx < 0)
+                q += this._tileWidth;
+            rx = q;
+            ry = ly + stepY*((q-lx)/stepX);
+            if((ry > ty) && (ry < ty + this._tileHeight))
+            {
+                if(Result === undefined)
+                    Result = new FlxPoint();
+                Result.x = rx;
+                Result.y = ry;
+                return true;
+            }
+            
+            //Else, figure out if it crosses the Y boundary
+            q = ty;
+            if(dy < 0)
+                q += this._tileHeight;
+            rx = lx + stepX*((q-ly)/stepY);
+            ry = q;
+            if((rx > tx) && (rx < tx + this._tileWidth))
+            {
+                if(Result === undefined)
+                    Result = new FlxPoint();
+                Result.x = rx;
+                Result.y = ry;
+                return true;
+            }
+            return false;
+        }
+        i++;
+    }
+    return false;
+}
+JxlTileMap.generateBoundingTiles = function() {
+    this.refresh = true;
+    
+    if((this._bbKey == null) || (this._bbKey.length <= 0))
+        return;
+    
+    //Check for an existing version of this bounding boxes tilemap
+    var bbc = this.getBoundingColor();
+    var key = this._bbKey + ":BBTILES" + bbc;
+    var skipGen = FlxG.checkBitmapCache(key);
+    this._bbPixels = FlxG.createBitmap(this._pixels.width, this._pixels.height, 0, true, key);
+    if(!skipGen)
+    {
+        //Generate a bounding boxes tilemap for this color
+        this._flashRect.width = this._pixels.width;
+        this._flashRect.height = this._pixels.height;
+        this._flashPoint.x = 0;
+        this._flashPoint.y = 0;
+        
+        this._bbPixels.copyPixels(this._pixels,this._flashRect,this._flashPoint);
+        this._flashRect.width = this._tileWidth;
+        this._flashRect.height = this._tileHeight;
+        
+        //Check for an existing non-collide bounding box stamp
+        var ov = this._solid;
+        this._solid = false;
+        bbc = this.getBoundingColor();
+        key = "BBTILESTAMP"+ this._tileWidth + "X" + this._tileHeight + bbc;
+        skipGen = FlxG.checkBitmapCache(key);
+        var stamp1 = FlxG.createBitmap(this._tileWidth, this._tileHeight, 0, true, key);
+        if(!skipGen)
+        {
+            //Generate a bounding boxes stamp for this color
+            stamp1.fillRect(this._flashRect, bbc);
+            this._flashRect.x = this._flashRect.y = 1;
+            this._flashRect.width = this._flashRect.width - 2;
+            this._flashRect.height = this._flashRect.height - 2;
+            stamp1.fillRect(this._flashRect, 0);
+            this._flashRect.x = this._flashRect.y = 0;
+            this._flashRect.width = this._tileWidth;
+            this._flashRect.height = this._tileHeight;
+        }
+        this._solid = ov;
+        
+        //Check for an existing collide bounding box
+        bbc = this.getBoundingColor();
+        key = "BBTILESTAMP" + this._tileWidth + "X" + this._tileHeight + bbc;
+        skipGen = FlxG.checkBitmapCache(key);
+        var stamp2 = FlxG.createBitmap(this._tileWidth, this._tileHeight, 0, true, key);
+        if(!skipGen)
+        {
+            //Generate a bounding boxes stamp for this color
+            stamp2.fillRect(this._flashRect, bbc);
+            this._flashRect.x = this._flashRect.y = 1;
+            this._flashRect.width = this._flashRect.width - 2;
+            this._flashRect.height = this._flashRect.height - 2;
+            stamp2.fillRect(this._flashRect,0);
+            this._flashRect.x = this._flashRect.y = 0;
+            this._flashRect.width = this._tileWidth;
+            this._flashRect.height = this._tileHeight;
+        }
+        
+        //Stamp the new tile bitmap with the bounding box border
+        var r = 0;
+        var c;
+        var i = 0;
+        while(r < this._bbPixels.height)
+        {
+            c = 0;
+            while(c < this._bbPixels.width)
+            {
+                this._flashPoint.x = c;
+                this._flashPoint.y = r;
+                if(i++ < this.collideIndex)
+                    this._bbPixels.copyPixels(stamp1,this._flashRect,this._flashPoint,null,null,true);
+                else
+                    this._bbPixels.copyPixels(stamp2,this._flashRect,this._flashPoint,null,null,true);
+                c += this._tileWidth;
+            }
+            r += this._tileHeight;
+        }
+        
+        this._flashRect.x = 0;
+        this._flashRect.y = 0;
+        this._flashRect.width = this._buffer.width;
+        this._flashRect.height = this._buffer.height;
+    }
+}
 JxlState.Inherits(JxlSprite);
 function JxlState() {
     this.JxlSprite();
@@ -1167,7 +1453,7 @@ JxlU.prototype.overlap = function(obj1, obj2, callback) {
     if( (obj1 == null) || !obj1.exists ||
 				(obj2 == null) || !obj2.exists )
 				return false;
-    quadTree = new JxlQuadTree(quadTreeBounds.x,quadTreeBounds.y,quadTreeBounds.width,quadTreeBounds.height);
+    quadTree = new JxlQuadTree(JxlQuadTree.bounds.x,JxlQuadTree.bounds.y,JxlQuadTree.bounds.width,JxlQuadTree.bounds.height);
     quadTree.add(obj1,JxlQuadTree.A_LIST);
     if(obj1 === obj2)
         return quadTree.overlap(false,callback);
@@ -1179,12 +1465,12 @@ JxlU.prototype.collide = function(obj1, obj2) {
         (obj2 == null) || !obj2.exists )
         return false;
     
-    quadTree = new JxlQuadTree(quadTreeBounds.x,quadTreeBounds.y,quadTreeBounds.width,quadTreeBounds.height);
+    quadTree = new JxlQuadTree(JxlQuadTree.bounds.x,JxlQuadTree.bounds.y,JxlQuadTree.bounds.width,JxlQuadTree.bounds.height);
     quadTree.add(obj1,JxlQuadTree.A_LIST);
     var match = obj1 === obj2;
     if(!match) quadTree.add(obj2,JxlQuadTree.B_LIST);
-    var cx = quadTree.overlap(!match,solveXCollision);
-    var cy = quadTree.overlap(!match,solveYCollision);
+    var cx = quadTree.overlap(!match,jxlU.solveXCollision);
+    var cy = quadTree.overlap(!match,jxlU.solveYCollision);
     return cx || cy;
 }
 JxlU.prototype.rotatePoint = function(x, y, pivotX, pivotY, angle, p) {
@@ -1203,7 +1489,7 @@ JxlU.prototype.solveXCollision = function(obj1, obj2) {
     var o2 = obj2.colVector.x;
     if(o1 == o2) return false;
     
-    //Give the objects a heads up that we're about to resolve some collisions
+    //Give the objs a heads up that we're about to resolve some collisions
     obj1.preCollide(obj2);
     obj2.preCollide(obj1);
 
@@ -1240,16 +1526,16 @@ JxlU.prototype.solveXCollision = function(obj1, obj2) {
     var sv1;
     var sv2;
     
-    //Decide based on object's movement patterns if it was a right-side or left-side collision
+    //Decide based on obj's movement patterns if it was a right-side or left-side collision
     p1hn2 = ((obj1Stopped && obj2MoveNeg) || (obj1MovePos && obj2Stopped) || (obj1MovePos && obj2MoveNeg) || //the obvious cases
             (obj1MoveNeg && obj2MoveNeg && (((o1>0)?o1:-o1) < ((o2>0)?o2:-o2))) || //both moving left, obj2 overtakes obj1
             (obj1MovePos && obj2MovePos && (((o1>0)?o1:-o1) > ((o2>0)?o2:-o2))) ); //both moving right, obj1 overtakes obj2
     
-    //Check to see if these objects allow these collisions
+    //Check to see if these objs allow these collisions
     if(p1hn2?(!obj1.collideRight || !obj2.collideLeft):(!obj1.collideLeft || !obj2.collideRight))
         return false;
     
-    //this looks insane, but we're just looping through collision offsets on each object
+    //this looks insane, but we're just looping through collision offsets on each obj
     for(i1 = 0; i1 < l1; i1++)
     {
         ox1 = co1[i1].x;
@@ -1274,7 +1560,7 @@ JxlU.prototype.solveXCollision = function(obj1, obj2) {
                 continue;
             }
 
-            //Calculate the overlap between the objects
+            //Calculate the overlap between the objs
             if(p1hn2)
             {
                 if(obj1MoveNeg)
@@ -1310,7 +1596,7 @@ JxlU.prototype.solveXCollision = function(obj1, obj2) {
             }
             hit = true;
             
-            //Adjust the objects according to their flags and stuff
+            //Adjust the objs according to their flags and stuff
             sv1 = obj2.velocity.x;
             sv2 = obj1.velocity.x;
             if(!obj1.fixed && obj2.fixed)
@@ -1389,7 +1675,7 @@ JxlU.prototype.solveYCollision = function(obj1, obj2) {
     var o2 = obj2.colVector.y;
     if(o1 == o2) return false;
     
-    //Give the objects a heads up that we're about to resolve some collisions
+    //Give the objs a heads up that we're about to resolve some collisions
     obj1.preCollide(obj2);
     obj2.preCollide(obj1);
     
@@ -1424,16 +1710,16 @@ JxlU.prototype.solveYCollision = function(obj1, obj2) {
     var sv1;
     var sv2;
     
-    //Decide based on object's movement patterns if it was a top or bottom collision
+    //Decide based on obj's movement patterns if it was a top or bottom collision
     p1hn2 = ((obj1Stopped && obj2MoveNeg) || (obj1MovePos && obj2Stopped) || (obj1MovePos && obj2MoveNeg) || //the obvious cases
         (obj1MoveNeg && obj2MoveNeg && (((o1>0)?o1:-o1) < ((o2>0)?o2:-o2))) || //both moving up, obj2 overtakes obj1
         (obj1MovePos && obj2MovePos && (((o1>0)?o1:-o1) > ((o2>0)?o2:-o2))) ); //both moving down, obj1 overtakes obj2
     
-    //Check to see if these objects allow these collisions
+    //Check to see if these objs allow these collisions
     if(p1hn2?(!obj1.collideBottom || !obj2.collideTop):(!obj1.collideTop || !obj2.collideBottom))
         return false;
     
-    //this looks insane, but we're just looping through collision offsets on each object
+    //this looks insane, but we're just looping through collision offsets on each obj
     for(i1 = 0; i1 < l1; i1++) {
         ox1 = co1[i1].x;
         oy1 = co1[i1].y;
@@ -1455,25 +1741,25 @@ JxlU.prototype.solveYCollision = function(obj1, obj2) {
                 continue;
             }
             
-            //Calculate the overlap between the objects
+            //Calculate the overlap between the objs
             if(p1hn2) {
                 if(obj1MoveNeg)
-                    r1 = obj1Hull.y + Object1.colHullX.height;
+                    r1 = obj1Hull.y + obj1.colHullX.height;
                 else
                     r1 = obj1Hull.y + obj1Hull.height;
                 if(obj2MoveNeg)
                     r2 = obj2Hull.y;
                 else
-                    r2 = obj2Hull.y + obj2Hull.height - Object2.colHullX.height;
+                    r2 = obj2Hull.y + obj2Hull.height - obj2.colHullX.height;
             } else {
                 if(obj2MoveNeg)
-                    r1 = -obj2Hull.y - Object2.colHullX.height;
+                    r1 = -obj2Hull.y - obj2.colHullX.height;
                 else
                     r1 = -obj2Hull.y - obj2Hull.height;
                 if(obj1MoveNeg)
                     r2 = -obj1Hull.y;
                 else
-                    r2 = -obj1Hull.y - obj1Hull.height + Object1.colHullX.height;
+                    r2 = -obj1Hull.y - obj1Hull.height + obj1.colHullX.height;
             }
             overlap = r1 - r2;
             
@@ -1487,7 +1773,7 @@ JxlU.prototype.solveYCollision = function(obj1, obj2) {
             }
             hit = true;
             
-            //Adjust the objects according to their flags and stuff
+            //Adjust the objs according to their flags and stuff
             sv1 = obj2.velocity.y;
             sv2 = obj1.velocity.y;
             if(!obj1.fixed && obj2.fixed) {
@@ -1584,6 +1870,25 @@ JxlU.prototype.computeVelocity = function(time, velocity, acceleration, drag, ma
     }
     return velocity;
 }
+JxlU.prototype.setWorldBounds = function(X, Y, Width, Height, Divisions) {
+    //Set default values for optional parameters
+    X = (isNaN(X)) ? 0 : X;
+    Y = (isNaN(Y)) ? 0 : Y;
+    Width = (isNaN(Width)) ? 0 : Width;
+    Height = (isNaN(Height)) ? 0 : Height;
+    Divisions = (isNaN(Divisions)) ? 3 : Divisions;
+
+    if(JxlQuadTree.bounds == null)
+        JxlQuadTree.bounds = new JxlRect();
+    JxlQuadTree.bounds.x = X;
+    JxlQuadTree.bounds.y = Y;
+    if(Width > 0)
+        JxlQuadTree.bounds.width = Width;
+    if(Height > 0)
+        JxlQuadTree.bounds.height = Height;
+    if(Divisions > 0)
+        JxlQuadTree.divisions = Divisions;
+}
 /*** Data and nongame related ;) ***/
 function JxlList() {
     this.object = null;
@@ -1631,6 +1936,7 @@ function JxlQuadTree(x, y, width, height, parent) {
     } else {
         this._min = (this.width + this.height)/(2*jxlU.quadTreeDivisions);
     }
+    this._canSubdivide = (this.width > this._min) || (this.height > JxlQuadTree._min);
     this._nw = null;
     this._ne = null;
     this._se = null;
@@ -1645,7 +1951,7 @@ function JxlQuadTree(x, y, width, height, parent) {
     this._my  = this._t+this._hh;
 }
 JxlQuadTree.prototype.add = function(obj, list) {
-    this._oa = list;
+   JxlQuadTree._oa = list;
     
     if(obj._group) {
         var m;
@@ -1657,44 +1963,44 @@ JxlQuadTree.prototype.add = function(obj, list) {
             if((m != null) && m.exists) {
                 if(m._group) this.add(m, list);
                 else if(m.solid) {
-                    this._o = m;
-                    this._ol = this._o.x;
-                    this._ot = this._o.y;
-                    this._or = this._o.x + this._o.width;
-                    this._ob = this._o.y + this._o.height;
+                   JxlQuadTree._o = m;
+                   JxlQuadTree._ol =JxlQuadTree._o.x;
+                   JxlQuadTree._ot =JxlQuadTree._o.y;
+                   JxlQuadTree._or =JxlQuadTree._o.x +JxlQuadTree._o.width;
+                   JxlQuadTree._ob =JxlQuadTree._o.y +JxlQuadTree._o.height;
                     this.addObject();
                 }
             }
         }
     }
     if(obj.solid) {
-        this._o = m;
-        this._ol = this._o.x;
-        this._ot = this._o.y;
-        this._or = this._o.x + this._o.width;
-        this._ob = this._o.y + this._o.height;
+       JxlQuadTree._o = obj;
+       JxlQuadTree._ol =JxlQuadTree._o.x;
+       JxlQuadTree._ot =JxlQuadTree._o.y;
+       JxlQuadTree._or =JxlQuadTree._o.x +JxlQuadTree._o.width;
+       JxlQuadTree._ob =JxlQuadTree._o.y +JxlQuadTree._o.height;
         this.addObject();
     }
 }
 JxlQuadTree.prototype.addObject = function() {
    //If this quad (not its children) lies entirely inside this object, add it here
-    if(!this._canSubdivide || ((this._l >= this._ol) && (this._r <= this._or) && (this._t >= this._ot) && (this._b <= this._ob)))
+    if(!this._canSubdivide || ((this._l >=JxlQuadTree._ol) && (this._r <=JxlQuadTree._or) && (this._t >=JxlQuadTree._ot) && (this._b <=JxlQuadTree._ob)))
     {
         this.addToList();
         return;
     }
 
     //See if the selected object fits completely inside any of the quadrants
-    if((this._ol > this._l) && (this._or < this._mx))
+    if((JxlQuadTree._ol > this._l) && (JxlQuadTree._or < this._mx))
     {
-        if((this._ot > this._t) && (this._ob < this._my))
+        if((JxlQuadTree._ot > this._t) && (JxlQuadTree._ob < this._my))
         {
             if(this._nw == null)
                 this._nw = new JxlQuadTree(this._l,this._t,this._hw,this._hh,this);
             this._nw.addObject();
             return;
         }
-        if((this._ot > this._my) && (this._ob < this._b))
+        if((JxlQuadTree._ot > this._my) && (JxlQuadTree._ob < this._b))
         {
             if(this._sw == null)
                 this._sw = new JxlQuadTree(this._l,this._my,this._hw,this._hh,this);
@@ -1702,16 +2008,16 @@ JxlQuadTree.prototype.addObject = function() {
             return;
         }
     }
-    if((this._ol > this._mx) && (this._or < this._r))
+    if((JxlQuadTree._ol > this._mx) && (JxlQuadTree._or < this._r))
     {
-        if((this._ot > this._t) && (this._ob < this._my))
+        if((JxlQuadTree._ot > this._t) && (JxlQuadTree._ob < this._my))
         {
             if(this._ne == null)
                 this._ne = new JxlQuadTree(this._mx,this._t,this._hw,this._hh,this);
             this._ne.addObject();
             return;
         }
-        if((this._ot > this._my) && (this._ob < this._b))
+        if((JxlQuadTree._ot > this._my) && (JxlQuadTree._ob < this._b))
         {
             if(this._se == null)
                 this._se = new JxlQuadTree(this._mx,this._my,this._hw,this._hh,this);
@@ -1721,34 +2027,34 @@ JxlQuadTree.prototype.addObject = function() {
     }
 
     //If it wasn't completely contained we have to check out the partial overlaps
-    if((this._or > this._l) && (this._ol < this._mx) && (this._ob > this._t) && (this._ot < this._my))
+    if((JxlQuadTree._or > this._l) && (JxlQuadTree._ol < this._mx) && (JxlQuadTree._ob > this._t) && (JxlQuadTree._ot < this._my))
     {
         if(this._nw == null)
-            this._nw = new FlxQuadTree(this._l,this._t,this._hw,this._hh,this);
+            this._nw = new JxlQuadTree(this._l,this._t,this._hw,this._hh,this);
         this._nw.addObject();
     }
-    if((this._or > this._mx) && (this._ol < this._r) && (this._ob > this._t) && (this._ot < this._my))
+    if((JxlQuadTree._or > this._mx) && (JxlQuadTree._ol < this._r) && (JxlQuadTree._ob > this._t) && (JxlQuadTree._ot < this._my))
     {
         if(this._ne == null)
-            this._ne = new FlxQuadTree(this._mx,this._t,this._hw,this._hh,this);
+            this._ne = new JxlQuadTree(this._mx,this._t,this._hw,this._hh,this);
         this._ne.addObject();
     }
-    if((this._or > this._mx) && (this._ol < this._r) && (this._ob > this._my) && (this._ot < this._b))
+    if((JxlQuadTree._or > this._mx) && (JxlQuadTree._ol < this._r) && (JxlQuadTree._ob > this._my) && (JxlQuadTree._ot < this._b))
     {
         if(this._se == null)
-            this._se = new FlxQuadTree(this._mx,this._my,this._hw,this._hh,this);
+            this._se = new JxlQuadTree(this._mx,this._my,this._hw,this._hh,this);
         this._se.addObject();
     }
-    if((this._or > this._l) && (this._ol < this._mx) && (this._ob > this._my) && (this._ot < this._b))
+    if((JxlQuadTree._or > this._l) && (JxlQuadTree._ol < this._mx) && (JxlQuadTree._ob > this._my) && (JxlQuadTree._ot < this._b))
     {
         if(this._sw == null)
-            this._sw = new FlxQuadTree(this._l,this._my,this._hw,this._hh,this);
+            this._sw = new JxlQuadTree(this._l,this._my,this._hw,this._hh,this);
         this._sw.addObject();
     }
 }
 JxlQuadTree.prototype.addToList = function() {
     var ot;
-    if(this._oa == JxlQuadTree.A_LIST)
+    if(JxlQuadTree._oa == JxlQuadTree.A_LIST)
     {
         if(this._tailA.object != null)
         {
@@ -1756,7 +2062,7 @@ JxlQuadTree.prototype.addToList = function() {
             this._tailA = new JxlList();
             ot.next = this._tailA;
         }
-        this._tailA.object = this._o;
+        this._tailA.object =JxlQuadTree._o;
     }
     else
     {
@@ -1766,7 +2072,7 @@ JxlQuadTree.prototype.addToList = function() {
             this._tailB = new JxlList();
             ot.next = this._tailB;
         }
-        this._tailB.object = this._o;
+        this._tailB.object =JxlQuadTree._o;
     }
     if(!this._canSubdivide)
         return;
@@ -1783,32 +2089,32 @@ JxlQuadTree.prototype.overlap = function(BothLists, Callback) {
     BothLists = (BothLists === undefined) ? true : BothLists;
     Callback = (Callback === undefined) ? null : Callback;
 
-    this._oc = Callback;
+   JxlQuadTree._oc = Callback;
     var c = false;
     var itr;
     if(BothLists)
     {
         //An A-B list comparison
-        this._oa = JxlQuadTree.B_LIST;
+       JxlQuadTree._oa = JxlQuadTree.B_LIST;
         if(this._headA.object != null)
         {
             itr = this._headA;
             while(itr != null)
             {
                 JxlQuadTree._o = itr.object;
-                if(this._o.exists && this._o.solid && this.overlapNode())
+                if(JxlQuadTree._o.exists &&JxlQuadTree._o.solid && this.overlapNode())
                     c = true;
                 itr = itr.next;
             }
         }
-        this._oa = JxlQuadTree.A_LIST;
+       JxlQuadTree._oa = JxlQuadTree.A_LIST;
         if(this._headB.object != null)
         {
             itr = this._headB;
             while(itr != null)
             {
                 JxlQuadTree._o = itr.object;
-                if(this._o.exists && this._o.solid)
+                if(JxlQuadTree._o.exists &&JxlQuadTree._o.solid)
                 {
                     if((this._nw != null) && this._nw.overlapNode())
                         c = true;
@@ -1832,7 +2138,7 @@ JxlQuadTree.prototype.overlap = function(BothLists, Callback) {
             while(itr != null)
             {
                 JxlQuadTree._o = itr.object;
-                if(this._o.exists && this._o.solid && this.overlapNode(itr.next))
+                if(JxlQuadTree._o.exists &&JxlQuadTree._o.solid && this.overlapNode(itr.next))
                     c = true;
                 itr = itr.next;
             }
@@ -1840,13 +2146,13 @@ JxlQuadTree.prototype.overlap = function(BothLists, Callback) {
     }
 
     //Advance through the tree by calling overlap on each child
-    if((this._nw != null) && this._nw.overlap(BothLists,this._oc))
+    if((this._nw != null) && this._nw.overlap(BothLists,JxlQuadTree._oc))
         c = true;
-    if((this._ne != null) && this._ne.overlap(BothLists,this._oc))
+    if((this._ne != null) && this._ne.overlap(BothLists,JxlQuadTree._oc))
         c = true;
-    if((this._se != null) && this._se.overlap(BothLists,this._oc))
+    if((this._se != null) && this._se.overlap(BothLists,JxlQuadTree._oc))
         c = true;
-    if((this._sw != null) && this._sw.overlap(BothLists,this._oc))
+    if((this._sw != null) && this._sw.overlap(BothLists,JxlQuadTree._oc))
         c = true;
 
     return c;
@@ -1873,22 +2179,22 @@ JxlQuadTree.prototype.overlapNode = function(Iterator) {
         while(itr != null)
         {
             co = itr.object;
-            if( (JxlQuadTree._o === co) || !co.exists || !this._o.exists || !co.solid || !this._o.solid ||
-                (JxlQuadTree._o.x + this._o.width  < co.x + JxlU.roundingError) ||
+            if( (JxlQuadTree._o === co) || !co.exists || !JxlQuadTree._o.exists || !co.solid || !JxlQuadTree._o.solid ||
+                (JxlQuadTree._o.x +JxlQuadTree._o.width  < co.x + JxlU.roundingError) ||
                 (JxlQuadTree._o.x + JxlU.roundingError > co.x + co.width) ||
-                (JxlQuadTree._o.y + this._o.height < co.y + JxlU.roundingError) ||
+                (JxlQuadTree._o.y +JxlQuadTree._o.height < co.y + JxlU.roundingError) ||
                 (JxlQuadTree._o.y + JxlU.roundingError > co.y + co.height) )
             {
                 itr = itr.next;
                 continue;
             }
-            if(this._oc == null)
+            if(JxlQuadTree._oc == null)
             {
-                this._o.kill();
+               JxlQuadTree._o.kill();
                 co.kill();
                 c = true;
             }
-            else if(this._oc(this._o,co))
+            else if(JxlQuadTree._oc(JxlQuadTree._o,co))
                 c = true;
             itr = itr.next;
         }

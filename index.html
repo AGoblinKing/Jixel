@@ -7,7 +7,7 @@
     <script type="text/javascript" src="js/jquery-ui.js"></script>
     <script type="text/javascript" src="jixel.js"></script>
     <script type="text/javascript">
-      var game;
+      var game, level, player, cloud;
       $(function(){
         var can = $('<canvas/>')[0];
         can.getContext('2d')
@@ -30,15 +30,17 @@
                      
         game.changeScale(3);
         am.load(assets, function() {
-          game.add(new JxlTileMap(0,112).loadMap(game, mapData, am.get('tiles')));
-          game.add(new Cloud(am.get('cloud'), 0, 0));
+          level = new JxlTileMap(0,112).loadMap(game, mapData, am.get('tiles'));
+          game.add(level);
+          cloud = new Cloud(am.get('cloud'), 0, 0);
+          game.add(cloud);
           game.add(new Cloud(am.get('cloud'), 400, 40));
          /*
           var shipzor = new Ship(am.get('ship'), 100,100);
           game.add(shipzor);*/
-         var ply = new Cat(am.get('animals'), 100, 100);
-          game.add(ply);
-          game.follow(ply);
+         var player = new Cat(am.get('animals'), 100, 100);
+          game.add(player);
+          game.follow(player);
           
           /*
           for(var i=0;i<500;i++) {
@@ -78,35 +80,38 @@
       function Cat(graphic, x, y) {
         this.JxlSprite(graphic, x, y, 32, 32);
         this.addAnimation('run', [72,73,74,73], .30);
-        this.play('run');
-        this.speed = -50;
+        this.addAnimation('idle', [48,49,50,49], .50);
+        this.play('idle');
+        this.speed = -80;
+        this.drag = new JxlPoint(150,150);
+        this.acceleration.y = 500;
       }
       Cat.prototype.update = function(game, time) {
-        this.velocity.x = 0;
-        this.velocity.y = 0;
-        if('W' in game.keys) {
-          this.velocity.y = this.speed;
-        } else if ('S' in game.keys) {
-          this.velocity.y = -1*this.speed;
-        }
         if ('A' in game.keys) {
           this.velocity.x = this.speed;
           this._flipped = true;
+          this.play('run');
         } else if ('D' in game.keys) {
           this._flipped = false;
+          this.play('run');
           this.velocity.x = -1*this.speed;
+        } else {
+          this.play('idle');
         }
-        if('SPACE' in game.keys) {
-          game.audio.play('hit');
-        }
+        if('SPACE' in game.keys ) {
+          this.velocity.y = -150;
+        } 
+          
+        
         this.JxlSprite_update(game, time);
-        this.JxlSprite_update(game, time);
+        jxlU.collide(level, this);
+
         
       }
       Ship.Inherits(JxlSprite);
       Ship.Override(JxlSprite, 'update');
       function Ship(graphic, x, y) {
-        this.JxlSprite(graphic, x, y);
+        this.JxlSprite(graphic, x, y);tech
         this.speed = -50;
       }
       Ship.prototype.update = function(game, time) {
