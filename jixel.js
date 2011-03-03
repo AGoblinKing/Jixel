@@ -498,7 +498,7 @@ JxlObject.prototype.hitTop = function(contact, velocity) {
     if(!this.fixed) this.velocity.y = velocity;
 }
 JxlObject.prototype.hitBottom = function(contact, velocity) {
-    this.onFloor = true;
+    this.onFloor = true; 
     if(!this.fixed) this.velocity.y = velocity;
 }
 JxlObject.prototype.flickering = function() {
@@ -1188,7 +1188,7 @@ JxlTileMap.prototype.overlaps = function(Core) {
     }
     return false;
 }
-JxlTileMap.overlapsPoint = function(X, Y, PerPixel) {
+JxlTileMap.prototype.overlapsPoint = function(X, Y, PerPixel) {
     var t = getTile(
             Math.floor( (X-this.x) / this._tileWidth ),
             Math.floor( (Y-this.y) / this._tileHeight)
@@ -1205,6 +1205,7 @@ JxlTileMap.prototype.refreshHulls = function() {
     this.colHullY.width = this._tileWidth;
     this.colHullY.height = this._tileHeight;
 }
+
 JxlTileMap.prototype.preCollide = function(Obj) {
     var r;
     var c;
@@ -1212,8 +1213,9 @@ JxlTileMap.prototype.preCollide = function(Obj) {
     var col = 0;
     var ix = Math.floor((Obj.x - this.x)/this._tileWidth);
     var iy = Math.floor((Obj.y - this.y)/this._tileHeight);
-    var iw = ix + Math.ceil(Obj.width/this._tileWidth)+1;
-    var ih = iy + Math.ceil(Obj.height/this._tileHeight)+1;
+
+    var iw = ix + Math.ceil(Obj.width/this._tileWidth+1);
+    var ih = iy + Math.ceil(Obj.height/this._tileHeight+1);
     if(ix < 0)
         ix = 0;
     if(iy < 0)
@@ -1224,17 +1226,14 @@ JxlTileMap.prototype.preCollide = function(Obj) {
         ih = this.heightInTiles;
     rs = iy * this.widthInTiles;
     r = iy;
-    while(r < ih)
+    for(r = iy;r < ih;r++)
     {
-        c = ix;
-        while(c < iw)
+        for(c = ix; c < iw;c++)
         {
-            if(Math.floor(this._data[rs+c]) >= this.collideIndex)
+            if(Math.floor(Math.abs(this._data[rs+c])) >= this.collideIndex)
                 this.colOffsets[col++] = new JxlPoint(this.x + c * this._tileWidth, this.y + r * this._tileHeight);
-            c++;
         }
         rs += this.widthInTiles;
-        r++;
     }
     if(this.colOffsets.length != col)
         this.colOffsets.length = col;
@@ -1580,7 +1579,7 @@ JxlU.prototype.solveXCollision = function(obj1, obj2) {
                     r2 = -obj1Hull.x - obj1Hull.width + obj1.colHullY.width;
             }
             overlap = r1 - r2;
-
+        
             //Last chance to skip out on a bogus collision resolution
             if( (overlap == 0) ||
                 ((!obj1.fixed && ((overlap>0)?overlap:-overlap) > obj1Hull.width*0.8)) ||

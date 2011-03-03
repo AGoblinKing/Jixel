@@ -31,6 +31,7 @@
         game.changeScale(3);
         am.load(assets, function() {
           level = new JxlTileMap(0,112).loadMap(game, mapData, am.get('tiles'));
+          level.collideIndex = 2;
           game.add(level);
           cloud = new Cloud(am.get('cloud'), 0, 0);
           game.add(cloud);
@@ -87,6 +88,7 @@
         this.acceleration.y = 500;
       }
       Cat.prototype.update = function(game, time) {
+       
         if ('A' in game.keys) {
           this.velocity.x = this.speed;
           this._flipped = true;
@@ -104,9 +106,9 @@
           
         
         this.JxlSprite_update(game, time);
+        
         jxlU.collide(level, this);
 
-        
       }
       Ship.Inherits(JxlSprite);
       Ship.Override(JxlSprite, 'update');
@@ -120,8 +122,10 @@
       function Cloud(graphic, x, y) {
         this.JxlSprite(graphic, x, y);
         this.dir = 1;
+        this.fixed = true;
+        /*
         this.velocity.x = -1;
-        this.scrollFactor.x = .3;
+        this.scrollFactor.x = .7;*/
       }
   
     </script>
