@@ -1545,10 +1545,10 @@ JxlU.prototype.solveXCollision = function(obj1, obj2) {
             obj2Hull.y += oy2;
             
             //See if it's a actually a valid collision
-            if( (obj1Hull.x + obj1Hull.width  < obj2Hull.x + this.roundingError) ||
-                (obj1Hull.x + this.roundingError > obj2Hull.x + obj2Hull.width) ||
-                (obj1Hull.y + obj1Hull.height < obj2Hull.y + this.roundingError) ||
-                (obj1Hull.y + this.roundingError > obj2Hull.y + obj2Hull.height) )
+            if( (obj1Hull.x + obj1Hull.width  < obj2Hull.x + JxlU.roundingError) ||
+                (obj1Hull.x + JxlU.roundingError > obj2Hull.x + obj2Hull.width) ||
+                (obj1Hull.y + obj1Hull.height < obj2Hull.y + JxlU.roundingError) ||
+                (obj1Hull.y + JxlU.roundingError > obj2Hull.y + obj2Hull.height) )
             {
                 obj2Hull.x -= ox2;
                 obj2Hull.y -= oy2;
@@ -1589,6 +1589,7 @@ JxlU.prototype.solveXCollision = function(obj1, obj2) {
                 obj2Hull.y -= oy2;
                 continue;
             }
+            
             hit = true;
             
             //Adjust the objs according to their flags and stuff
@@ -1727,10 +1728,10 @@ JxlU.prototype.solveYCollision = function(obj1, obj2) {
             obj2Hull.y += oy2;
             
             //See if it's a actually a valid collision
-            if( (obj1Hull.x + obj1Hull.width  < obj2Hull.x + this.roundingError) ||
-                (obj1Hull.x + this.roundingError > obj2Hull.x + obj2Hull.width) ||
-                (obj1Hull.y + obj1Hull.height < obj2Hull.y + this.roundingError) ||
-                (obj1Hull.y + this.roundingError > obj2Hull.y + obj2Hull.height) ) {
+            if( (obj1Hull.x + obj1Hull.width  < obj2Hull.x + JxlU.roundingError) ||
+                (obj1Hull.x + JxlU.roundingError > obj2Hull.x + obj2Hull.width) ||
+                (obj1Hull.y + obj1Hull.height < obj2Hull.y + JxlU.roundingError) ||
+                (obj1Hull.y + JxlU.roundingError > obj2Hull.y + obj2Hull.height) ) {
                 obj2Hull.x -= ox2;
                 obj2Hull.y -= oy2;
                 continue;
