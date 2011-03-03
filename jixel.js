@@ -1016,10 +1016,31 @@ JxlTileMap.Inherits(JxlObject);
 JxlTileMap.OFF =  0;
 JxlTileMap.AUTO =  1;
 JxlTileMap.ALT = 2;
-
-function JxlTileMap(x, y) {
+JxlTileMap.arrayToCSV = function(Data, Width) {
+    var r = 0;
+	var c;
+	var csv = "";
+	var Height = Data.length / Width;
+	while(r < Height) {
+		c = 0;
+		while(c < Width) {
+			if(c == 0) {
+				if(r == 0)
+					csv += Data[0];
+				else
+					csv += "\n"+Data[r*Width];
+			}
+			else
+				csv += ", "+Data[r*Width+c];
+			c++;
+		}
+		r++;
+	}
+	return csv;
+}
+function JxlTileMap(x, y, auto) {
     this.JxlObject(x, y);
-    this.auto = JxlTileMap.OFF;
+    this.auto = auto == undefined ? JxlTileMap.OFF : auto;
     this.collideIndex = 1;
     this.startingIndex = 0;
     this.drawIndex = 1;
@@ -1040,7 +1061,6 @@ function JxlTileMap(x, y) {
     this._block.fixed = true;
     this._callbacks = new Array();
     this.fixed = true;
-    
 }
 JxlTileMap.prototype.loadMap  = function(Game, MapData, TileGraphic, TileWidth, TileHeight) {
     var c, cols, rows = MapData.split("\n");
@@ -1060,11 +1080,15 @@ JxlTileMap.prototype.loadMap  = function(Game, MapData, TileGraphic, TileWidth, 
     
     //Pre-Process the map data if its auto-tiled
     var i;
-    totalTiles = this.widthInTiles*this.heightInTiles;
-    //Do AutoTile later
-    if(this.auto > 0) {
-        
+    this.totalTiles = this.widthInTiles * this.heightInTiles;
+    if(this.auto > JxlTileMap.OFF)
+    {
+        this.collideIndex = this.startingIndex = this.drawIndex = 1;
+        i = 0;
+        while(i < this.totalTiles)
+            this.autoTile(i++);
     }
+
     this._pixels = TileGraphic;
     
     if(TileWidth == undefined) 
@@ -1082,8 +1106,8 @@ JxlTileMap.prototype.loadMap  = function(Game, MapData, TileGraphic, TileWidth, 
     this.width = this.widthInTiles*this._tileWidth;
     this.height = this.heightInTiles*this._tileHeight;
     
-    this._rects = new Array(totalTiles);
-    for(i=0; i < totalTiles; i++)
+    this._rects = new Array(this.totalTiles);
+    for(i=0; i < this.totalTiles; i++)
         this.updateTile(i);
         
     this._screenRows = Math.ceil(game.height/this._tileHeight)+1;
@@ -1141,6 +1165,33 @@ JxlTileMap.prototype.updateTile = function(index){
     }
     this._rects[index] = [rx,ry,this._tileWidth,this._tileHeight];
 }
+
+JxlTileMap.prototype.autoTile = function(Index) {
+    if(this._data[Index] == 0) return;
+    
+    this._data[Index] = 0;
+    if((Index-this.widthInTiles < 0) || (this._data[Index-this.widthInTiles] > 0))					//UP
+        this._data[Index] += 1;
+    if((Index % this.widthInTiles >= this.widthInTiles-1) || (this._data[Index+1] > 0))				//RIGHT
+        this._data[Index] += 2;
+    if((Index + this.widthInTiles >= this.totalTiles) || (this._data[Index+this.widthInTiles] > 0)) //DOWN
+        this._data[Index] += 4;
+    if((Index % this.widthInTiles <= 0) || (this._data[Index-1] > 0))									//LEFT
+        this._data[Index] += 8;
+        
+    if((this.auto == JxlTileMap.ALT) && (this._data[Index] == 15))	//The alternate algo checks for interior corners
+    {
+        if((Index % this.widthInTiles > 0) && (Index+this.widthInTiles < this.totalTiles) && (this._data[Index+this.widthInTiles-1] <= 0))
+            this._data[Index] = 1;		//BOTTOM LEFT OPEN
+        if((Index % this.widthInTiles > 0) && (Index-this.widthInTiles >= 0) && (this._data[Index-this.widthInTiles-1] <= 0))
+            this._data[Index] = 2;		//TOP LEFT OPEN
+        if((Index % this.widthInTiles < this.widthInTiles-1) && (Index-this.widthInTiles >= 0) && (this._data[Index-this.widthInTiles+1] <= 0))
+            this._data[Index] = 4;		//TOP RIGHT OPEN
+        if((Index % this.widthInTiles < this.widthInTiles-1) && (Index+this.widthInTiles < this.totalTiles) && (this._data[Index+this.widthInTiles+1] <= 0))
+            this._data[Index] = 8; 		//BOTTOM RIGHT OPEN
+    }
+    this._data[Index] += 1;
+}
 JxlTileMap.prototype.overlaps = function(Core) {
     var d;
     
@@ -1187,6 +1238,55 @@ JxlTileMap.prototype.overlaps = function(Core) {
             return true;
     }
     return false;
+}
+JxlTileMap.prototype.setTile = function(X, Y, Tile, UpdateGraphics) {
+    UpdateGraphics = (UpdateGraphics === undefined) ? true : UpdateGraphics;
+    if((X >= this.widthInTiles) || (Y >= this.heightInTiles))
+        return false;
+    return this.setTileByIndex(Y * this.widthInTiles + X,Tile,UpdateGraphics);
+}
+JxlTileMap.prototype.setTileByIndex = function(Index, Tile, UpdateGraphics) {
+    UpdateGraphics = (UpdateGraphics === undefined) ? true : UpdateGraphics;
+    if(Index >= this._data.length)
+        return false;
+    
+    var ok = true;
+    this._data[Index] = Tile;
+    
+    if(!UpdateGraphics)
+        return ok;
+    
+    this.refresh = true;
+    
+    if(this.auto == FlxTilemap.OFF)
+    {
+        this.updateTile(Index);
+        return ok;
+    }
+    
+    //If this map is autotiled and it changes, locally update the arrangement
+    var i;
+    var r = Math.floor(Index/this.widthInTiles) - 1;
+    var rl = r + 3;
+    var c = Index % this.widthInTiles - 1;
+    var cl = c + 3;
+    while(r < rl)
+    {
+        c = cl - 3;
+        while(c < cl)
+        {
+            if((r >= 0) && (r < this.heightInTiles) && (c >= 0) && (c < this.widthInTiles))
+            {
+                i = r * this.widthInTiles + c;
+                this.autoTile(i);
+                this.updateTile(i);
+            }
+            c++;
+        }
+        r++;
+    }
+    
+    return ok;
 }
 JxlTileMap.prototype.overlapsPoint = function(X, Y, PerPixel) {
     var t = getTile(

@@ -18,12 +18,22 @@
         "2,3,3,3,3,3,3,3,3,3,3,3,3,3,4\n"+
         "5,6,6,6,6,6,6,6,6,6,6,6,6,6,7";
         
+        var autoData =
+        "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0\n"+
+        "0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0\n"+
+        "0,0,0,1,0,0,0,1,0,1,0,1,1,1,0,1,0,0,0,0,0,0\n"+
+        "0,1,0,1,0,1,0,0,1,0,0,1,1,0,0,1,0,0,0,0,0,0\n"+
+        "0,1,1,1,0,1,0,1,0,1,0,1,1,1,0,1,1,0,0,0,0,0\n"+
+        "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0";
+
         
         var assets = {
                       'keyboard':['audio','keyboard_cat_remix.mp3'],
                       'cloud':['image', 'cloud.png'],
                       'ship':['image', 'ship.png'],
                       'tiles':['image', 'tilemap.png'],
+                      'autotiles': ['image', 'autotiles.png'],
+                      'autotiles_alt' : ['image', 'autotiles_alt.png'],
                       'hit':['audio', 'hit.mp3'],
                       'animals':['image', 'animals.png']
                     };
@@ -31,6 +41,9 @@
         game.changeScale(3);
         am.load(assets, function() {
           level = new JxlTileMap(0,112).loadMap(game, mapData, am.get('tiles'));
+          
+          game.add(new JxlTileMap(0,50,JxlTileMap.AUTO).loadMap(game, autoData, am.get('autotiles')));
+          game.add(new JxlTileMap(0,100,JxlTileMap.ALT).loadMap(game, autoData, am.get('autotiles_alt')));
           level.collideIndex = 2;
           game.add(level);
           cloud = new Cloud(am.get('cloud'), 0, 0);
