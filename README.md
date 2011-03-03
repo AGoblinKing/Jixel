@@ -13,7 +13,6 @@ http://www.jixel.org/Jixel-Demo
 
 TODO
 ----
-* AutoTileMaps
 * Sprite Coloration
 * Sprite Blend Modes
 * Emitters
@@ -23,6 +22,8 @@ TODO
 
 Done
 ----
+* Groups
+* AutoTileMaps
 * Collisions
 * Sprite Animations
 * Audio Channels
