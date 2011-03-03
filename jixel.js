@@ -239,7 +239,9 @@ Jixel.prototype.start = function() {
             if(self.running) {
                 self.date = new Date();
                 var curTime = self.date.getTime();
-                self.update((curTime - self.lastUpdate)/1000);
+                var delta = (curTime - self.lastUpdate)/1000;
+                
+                self.update(delta < 1 ? delta : 0);
                 self.lastUpdate = curTime;
             }
         }, this.refresh);
@@ -708,7 +710,7 @@ JxlGroup.prototype.saveOldPosition = function() {
     this._last.x = this.x;
     this._last.y = this.y;
 }
-JxlGroup.prototype.updateMembers = function() {
+JxlGroup.prototype.updateMembers = function(game, time) {
     var mx;
     var my;
     var moved = false;
@@ -737,7 +739,7 @@ JxlGroup.prototype.updateMembers = function() {
                 }
             }
             if(o.active)
-                o.update();
+                o.update(game, time);
             if(moved && o.solid)
             {
                 o.colHullX.width += ((mx>0)?mx:-mx);
@@ -759,7 +761,7 @@ JxlGroup.prototype.update = function(game, time) {
     this.updateMembers(game, time);
     this.updateFlickering(game, time);
 }
-JxlGroup.prototype.renderMembers = function() {
+JxlGroup.prototype.renderMembers = function(ctx, game) {
     var i = 0;
     var o;
     var ml = this.members.length;
@@ -767,11 +769,11 @@ JxlGroup.prototype.renderMembers = function() {
     {
         o = this.members[i++];
         if((o != null) && o.exists && o.visible)
-            o.render();
+            o.render(ctx, game);
     }
 }
-JxlGroup.prototype.render = function() {
-    this.renderMembers();
+JxlGroup.prototype.render = function(ctx, game) {
+    this.renderMembers(ctx, game);
 }
 JxlGroup.prototype.killMembers = function() {
     var i = 0;
