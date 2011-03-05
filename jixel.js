@@ -27,10 +27,39 @@ Function.prototype.Override = function (fnSuper, stMethod) {
 var objID = 0;
 var jxlU = new JxlU();
 var jxlGame = null;
+
+function JxlState() {
+    this.defaultGroup = new JxlGroup();
+}
+JxlState.prototype.create = function() {
+    
+}
+JxlState.prototype.add = function(object) {
+    return this.defaultGroup.add(object);
+}
+JxlState.prototype.preProcess = function(ctx, game) {
+    ctx.clearRect(0,0, game.screenWidth(), game.screenHeight());
+}
+JxlState.prototype.update = function(game, delta) {
+    this.defaultGroup.update(game, delta);
+}
+JxlState.prototype.collide = function() {
+    FlxU.collide(this.defaultGroup, this.defaultGroup);
+}
+JxlState.prototype.render = function(ctx, game) {
+    this.defaultGroup.render(ctx, game);
+}
+JxlState.prototype.postProcess = function(ctx, game) {
+    
+}
+JxlState.prototype.destroy = function() {
+    this.defaultGroup.destroy();
+}
 /*** Game Objects ***/
-function Jixel(canvas) {
+function Jixel(canvas, state) {
     /*** Setup Core ***/
     this.jxlGame = jxlGame; // trying to ween off this, BB uses it tho
+    this.state = new JxlState();
     this.canvas = canvas;
     this.scale = 4;
     this.ctx = canvas.getContext('2d');
@@ -38,7 +67,6 @@ function Jixel(canvas) {
     this._width(240);
     this._height(160);
     this.buffer = this.bufferCanvas.getContext('2d');
-    this.gameObjects = {};
     this.refresh = 16;
     this.running = false;
     this.am = new AssetManager(this);
@@ -114,6 +142,7 @@ function Jixel(canvas) {
     });
     $(window).resize();
 }
+
 Jixel.prototype.toggleFPS = function() {
     if(!this._showFPS) {
         this.showFPS();
@@ -253,38 +282,17 @@ Jixel.prototype.changeScale = function(scale) {
     this._height(this.height);
     this.am.reload('image');
 }
-Jixel.prototype.add = function(obj) {
-    this.gameObjects[obj.id] = obj;
-}
-Jixel.prototype.destroyObject = function(obj) {
-    delete this.gameObjects[obj.id];
-}
-Jixel.prototype.update = function(timeBetween) {
-    // Do FPS Update
-    this.doFollow(timeBetween);
-    if(this.showFPS) {
-        this.ui.fps.html(Math.floor(1/timeBetween));
-    }
-    // Do AudioUpdates
-    this.audio.update(timeBetween);
-    // Do GameUpdates
-    for(var x in this.gameObjects) {
-        this.gameObjects[x].update(this, timeBetween);
-    }
 
-    // Now Draw
-    this.ctx.clearRect(0,0, this.screenWidth(), this.screenHeight());
-    //this.buffer.clearRect(0,0, this.width(), this.height());
-   
-    for(var x in this.gameObjects) {
-        this.gameObjects[x].render(this.ctx, this);
+Jixel.prototype.update = function(delta) {
+    this.doFollow(delta);
+    if(this.showFPS) {
+        this.ui.fps.html(Math.floor(1/delta));
     }
-    //this.ctx.putImageData(this.buffer.getImageData(0,0,this.width,this.height),0,0,0,0,this.width,this.height);
-    
-    //this.ctx.drawImage(this.bufferCanvas,0,0);
-    /*
-    var temp = resize(this.buffer,0,0,this.width(),this.height(),0,0,this.screenWidth(),this.screenHeight());
-    this.ctx.putImageData(temp, 0, 0);*/
+    this.audio.update(delta);
+    this.state.update(this, delta);
+    this.state.preProcess(this.ctx, this);
+    this.state.render(this.ctx, this);
+    this.state.postProcess(this.ctx, this);
 }
 Jixel.prototype.click = function(e) {
     //figure out where they clicked
@@ -1013,7 +1021,6 @@ function JxlAnim(name, frames, frameRate, looped){
     this.frames = frames;
     this.looped = looped;
 }
-
 JxlTileMap.Inherits(JxlObject);
 JxlTileMap.OFF =  0;
 JxlTileMap.AUTO =  1;
@@ -1501,20 +1508,6 @@ JxlTileMap.prototype.generateBoundingTiles = function() {
         this._flashRect.y = 0;
         this._flashRect.width = this._buffer.width;
         this._flashRect.height = this._buffer.height;
-    }
-}
-JxlState.Inherits(JxlSprite);
-function JxlState() {
-    this.JxlSprite();
-    this.defaultGroup = new FlxGroup();
-    if(FlxState.screen === undefined || FlxState.screen === null) {
-        FlxState.screen = new FlxSprite();
-        FlxState.screen.createGraphic(FlxG.width,FlxG.height,0,true);
-        FlxState.screen.origin.x = FlxState.screen.origin.y = 0;
-        FlxState.screen.antialiasing = true;
-        FlxState.screen.exists = false;
-        FlxState.screen.solid = false;
-        FlxState.screen.fixed = true;
     }
 }
 /*** Utility ***/
