@@ -30,6 +30,7 @@ var jxlGame = null;
 
 function JxlState() {
     this.defaultGroup = new JxlGroup();
+    this.create();
 }
 JxlState.prototype.create = function() {
     
@@ -62,6 +63,7 @@ function Jixel(canvas, state) {
     this.state = new JxlState();
     this.canvas = canvas;
     this.scale = 4;
+    this.autoPause = true;
     this.ctx = canvas.getContext('2d');
     this.bufferCanvas = $('<canvas/>')[0];
     this._width(240);
@@ -110,7 +112,7 @@ function Jixel(canvas, state) {
     this.mapKeys = {37:'A',38:'W',40:'S',39:'D',32:'SPACE'};
     /*** Setup Events ***/
     $(window).blur(function() {
-       self.pause();
+       if(self.autoPause) self.pause();
     });
     $(document).keyup(function(e){
         delete self.keys[String.fromCharCode(e.keyCode)];
@@ -528,6 +530,191 @@ JxlObject.prototype.getScreenXY = function(game, point) {
     point.y = Math.floor(this.y+jxlU.roundingError)+Math.floor(game.scroll.y*this.scrollFactor.y);
     return point;
 }
+JxlEmitter.Inherits(JxlGroup);
+JxlEmitter.Override(JxlGroup, 'update');
+function JxlEmitter(X, Y) {
+    X = isNaN(X) ? 0 : X;
+	Y = isNaN(Y) ? 0 : Y;
+    this.JxlGroup();
+    this.x = X;
+    this.y = Y;
+    this.width = 0;
+    this.height = 0;
+        
+    this.minParticleSpeed = new FlxPoint(-100,-100);
+    this.maxParticleSpeed = new FlxPoint(100,100);
+    this.minRotation = -360;
+    this.maxRotation = 360;
+    this.gravity = 400;
+    this.particleDrag = new FlxPoint();
+    this.delay = 0;
+    this.quantity = 0;
+    this._counter = 0;
+    this._explode = true;
+    this.exists = false;
+    this.on = false;
+    this.justEmitted = false;
+}
+JxlEmitter.prototype.createSprites = function(Graphics, Quantity, BakedRotations, Multiple, Collide, Bounce) {
+    Quantity = isNaN(Quantity) ? 50 : Quantity;
+    BakedRotations = isNaN(BakedRotations) ? 16 : BakedRotations;
+    Multiple = (Multiple === undefined) ? true : Multiple;
+    Collide = isNaN(Collide) ? 0 : Collide;
+    Bounce = isNaN(Bounce) ? 0 : Bounce;
+
+    this.members = new Array();
+    var r;
+    var s;
+    var tf = 1;
+    var sw;
+    var sh;
+    if(Multiple) {
+        s = new JxlSprite(Graphics);
+        tf = s.frames;
+    }
+    var i = 0;
+    while(i < Quantity) {
+        if((Collide > 0) && (Bounce > 0))
+            s = new FlxParticle(Bounce);
+        else
+            s = new FlxSprite();
+            
+        if(Multiple) {
+            r = FlxU.random()*tf;
+            s.loadGraphic(Graphics,true);
+            s.frame = r;
+        } else {
+            s.loadGraphic(Graphics);
+        }
+        if(Collide > 0) {
+            sw = s.width;
+            sh = s.height;
+            s.width *= Collide;
+            s.height *= Collide;
+            s.offset.x = (sw-s.width)/2;
+            s.offset.y = (sh-s.height)/2;
+            s.solid = true;
+        }
+        else
+            s.solid = false;
+        s.exists = false;
+        s.scrollFactor = scrollFactor;
+        this.add(s);
+        i++;
+    }
+    return this;
+}
+JxlEmitter.prototype.setSize = function(Width,Height) {
+    this.width = Width;
+    this.height = Height;
+}
+JxlEmitter.prototype.setXSpeed = function(Min, Max) {
+    Min = isNaN(Min) ? 0 : Min;
+    Max = isNaN(Max) ? 0 : Max;
+
+    this.minParticleSpeed.x = Min;
+    this.maxParticleSpeed.x = Max;
+}
+JxlEmitter.prototype.setYSpeed = function(Min, Max) {
+    Min = isNaN(Min) ? 0 : Min;
+    Max = isNaN(Max) ? 0 : Max;
+
+    this.minParticleSpeed.y = Min;
+    this.maxParticleSpeed.y = Max;
+}
+JxlEmitter.prototype.setRotation = function(Min, Max) {
+    Min = isNaN(Min) ? 0 : Min;
+    Max = isNaN(Max) ? 0 : Max;
+
+    this.minRotation = Min;
+    this.maxRotation = Max;
+}
+JxlEmitter.prototype.updateEmitter = function(game, delta) {
+    if(this._explode)
+    {
+        this._timer += delta;
+        if((this.delay > 0) && (this._timer > this.delay))
+        {
+            this.kill();
+            return;
+        }
+        if(this.on)
+        {
+            this.on = false;
+            var i = this._particle;
+            var l = this.members.length;
+            if(this.quantity > 0)
+                l = this.quantity;
+            l += this._particle;
+            while(i < l)
+            {
+                this.emitParticle();
+                i++;
+            }
+        }
+        return;
+    }
+    if(!this.on)
+        return;
+    this._timer += delta;
+    while((this._timer > this.delay) && ((this.quantity <= 0) || (this._counter < this.quantity)))
+    {
+        this._timer -= this.delay;
+        this.emitParticle();
+    }
+}
+JxlEmitter.prototype.updateMembers = function(game, delta) {
+    var o;
+    var i = 0;
+    var l = this.members.length;
+    while(i < l) {
+        o = this.members[i++];
+        if((o !== undefined && o !== null) && o.exists && o.active)
+            o.update(game, delta);
+    }
+}
+JxlEmitter.prototype.update = function(game, delta) {
+    this.justEmitted = false;
+    this.JxlGroup_update(game, delta);
+    this.updateEmitter(game, delta);
+}
+JxlEmitter.prototype.start = function(Explode, Delay, Quantity) {
+    Explode = (Explode === undefined) ? true : Explode;
+    Delay = isNaN(Delay) ? 0 : Delay;
+    Quantity = isNaN(Quantity) ? 0 : Quantity;
+
+    if(this.members.length <= 0)
+    {
+        //FlxG.log("WARNING: there are no sprites loaded in your emitter.\nAdd some to FlxEmitter.members or use FlxEmitter.createSprites().");
+        return;
+    }
+    this._explode = Explode;
+    if(!this._explode)
+        this._counter = 0;
+    if(!this.exists)
+        this._particle = 0;
+    this.exists = true;
+    this.visible = true;
+    this.active = true;
+    this.dead = false;
+    this.on = true;
+    this._timer = 0;
+    if(this.quantity == 0)
+        this.quantity = Quantity;
+    else if(Quantity != 0)
+        this.quantity = Quantity;
+    if(Delay != 0)
+        this.delay = Delay;
+    if(this.delay < 0)
+        this.delay = -this.delay;
+    if(this.delay == 0)
+    {
+        if(Explode)
+            this.delay = 3;	//default value for particle explosions
+        else
+            this.delay = 0.1;//default value for particle streams
+    }
+}
 JxlGroup.Inherits(JxlObject)
 JxlGroup.ASCENDING = JxlGroup.prototype.ASCENDING = -1;
 JxlGroup.DESCENDING = JxlGroup.prototype.DESCENDING = 1;
@@ -897,12 +1084,15 @@ function JxlSprite(asset, x, y, width, height) {
     
     this.asset = asset;
     if(width == undefined) {
-        this.width = asset.width;
-        this.height = asset.height;
+        if(asset) {
+            this.width = asset.width;
+            this.height = asset.height;
+        }
     } else {
         this.width = width;
         this.height = height;
     }
+    this.resetHelpers();
 }
 JxlSprite.prototype.play = function(name, force) {
     if(force == undefined) force = false;
@@ -912,6 +1102,17 @@ JxlSprite.prototype.play = function(name, force) {
     this._curAnim = this._animations[name];
     this._curFrame = this._curAnim.frames[this._caf]; 
     
+}
+JxlSprite.prototype.loadGraphic = function(Graphic, Animated) {
+    this.asset = Graphic;
+    if(Animated) {
+        this.height = Graphic.height;
+        this.width = Graphic.height;
+    } else {
+        this.height = Graphic.height;
+        this.width = Graphic.width;
+    }
+    this.resetHelpers();
 }
 JxlSprite.prototype.calcFrame = function(game) {
     var rx = this._curFrame * this.width;
@@ -1013,6 +1214,22 @@ JxlSprite.prototype.setFacing = function(Direction) {
     this._facing = Direction;
     if(c) this.calcFrame();
 }
+JxlSprite.prototype.resetHelpers = function () {
+    this._boundsVisible = false;
+    this._flashRect.x = 0;
+    this._flashRect.y = 0;
+    this._flashRect.width = this.frameWidth;
+    this._flashRect.height = this.frameHeight;
+    this._flashRect2.x = 0;
+    this._flashRect2.y = 0;
+    this._flashRect2.width = this._pixels.width;
+    this._flashRect2.height = this._pixels.height;
+    this.origin.x = this.frameWidth*0.5;
+    this.origin.y = this.frameHeight*0.5;
+    this.frames = (this._flashRect2.width / this._flashRect.width) * (this._flashRect2.height / this._flashRect.height);
+    this._caf = 0;
+    this.refreshHulls();
+}
 function JxlAnim(name, frames, frameRate, looped){
     this.name = name;
     this.delay = 0;
@@ -1020,6 +1237,29 @@ function JxlAnim(name, frames, frameRate, looped){
         this.delay = frameRate;
     this.frames = frames;
     this.looped = looped;
+}
+
+JxlParticle.Inherits(JxlSprite);
+function JxlParticle(Bounce) {
+    this.parent();
+    this._bounce = Bounce;
+}
+JxlParticle.prototype.hitSide = function(Contact, Velocity) {
+    this.velocity.x = -this.velocity.x * this._bounce;
+    if(this.angularVelocity != 0)
+        this.angularVelocity = -this.angularVelocity * this._bounce;
+}
+JxlParticle.prototype.hitBottom = function(Contact, Velocity) {
+    this.onFloor = true;
+    if(((this.velocity.y > 0) ? this.velocity.y : -this.velocity.y) > this._bounce*100) {
+        this.velocity.y = -this.velocity.y * this._bounce;
+        if(this.angularVelocity != 0)
+            this.angularVelocity *= -this._bounce;
+    } else {
+        this.angularVelocity = 0;
+        this.parent(Contact,Velocity);
+    }
+    this.velocity.x *= this._bounce;
 }
 JxlTileMap.Inherits(JxlObject);
 JxlTileMap.OFF =  0;
@@ -2403,7 +2643,7 @@ AssetManager.prototype.loadAsset = function(type, name, src, callback, batch) {
   }
   switch(type) {
     case 'audio':
-    case 'sound':
+    case 'sound': //fiiiiix meeeeee
         var temp = new Audio(src);
         temp.src = src;
         temp.load();
@@ -2412,8 +2652,6 @@ AssetManager.prototype.loadAsset = function(type, name, src, callback, batch) {
         $(temp).data('type', 'audio');
         this.assets[name] = temp;
         self.game.audio.add(name, temp);
-        
-        
         if(callback) callback(temp);
     
         break;
