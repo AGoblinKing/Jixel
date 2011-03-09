@@ -2,12 +2,13 @@
 <html>
   <head>
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
-      <meta name="viewport" content="width=device-width; 
+     <meta name="viewport" content="width=device-width; 
 	initial-scale=1; maximum-scale=1; user-scalable=0;"/>
     <link type="text/css" rel="stylesheet" href="../css/ui-lightness/jquery-ui.css"/>
     
     <link href='http://fonts.googleapis.com/css?family=Geo' rel='stylesheet' type='text/css'/>
     
+    <script type="text/javascript" src="../js/mootools-min.js"></script>
     <script type="text/javascript" src="../js/jquery.js"></script>
     <script type="text/javascript" src="../js/jquery-ui.js"></script>
     <script type="text/javascript" src="../jixel.js"></script>
@@ -48,6 +49,7 @@
           
           game.state.add(new JxlTileMap(0,50,JxlTileMap.AUTO).loadMap(game, autoData, am.get('autotiles')));
           game.state.add(new JxlTileMap(0,100,JxlTileMap.ALT).loadMap(game, autoData, am.get('autotiles_alt')));
+	//  game.state.add(new JxlEmitter(0,50).createSprites(am.get('animals')));
           level.collideIndex = 2;
           game.state.add(level);
           cloud = new Cloud(am.get('cloud'), 0, 0);
@@ -78,75 +80,62 @@
         });
         $(window).resize();*/
       });
+
+      var Cat = new Class({
+	Extends: JxlSprite,
+	initialize: function(graphic, x, y) {
+	  this.parent(graphic, x, y, 32, 32);
+	  this.addAnimation('run', [72,73,74,73], .30);
+	  this.addAnimation('idle', [48,49,50,49], .50);
+	  this.play('idle');
+	  this.speed = -80;
+	  this.drag = new JxlPoint(150,150);
+	  this.acceleration.y = 500;
+	},
+	update: function(game, time) {
+	   if ('A' in game.keys) {
+	     this.velocity.x = this.speed;
+	     this._flipped = true;
+	     this.play('run');
+	   } else if ('D' in game.keys) {
+	     this._flipped = false;
+	     this.play('run');
+	     this.velocity.x = -1*this.speed;
+	   } else {
+	     this.play('idle');
+	   }
+	   if('SPACE' in game.keys && this.onFloor) {
+	     game.audio.play('jump');
+	     this.velocity.y = -150;
+	   } 
+	   
+	   this.parent(game, time);
+	   
+	   jxlU.collide(level, this);
+	}
+      });
+      var Ship = new Class({
+	Extends: JxlSprite,
+	initialize: function(graphic, x, y) {
+	  this.parent(graphic, x, y);
+	},
+	update: function(game, time) {
+	  this.angle += 10;
+	  this.parent(game, time);
+	}
+      });
       
-      function LoadBar(count) {
-        //Assuming blocks = 5%
-        this.display = $('<div/>').addClass('loadBar');
-        this.number = number;
-        this.numberOfTicks = 20;
-        this.mod = 1/this.numberOfTicks;
-      }
-      LoadBar.prototype.progress = function(count) {
-        var num = ((this.number - count)/this.number)%this.mod;
-        this.display.empty();
-        for(var x=0;x < num;x++) {
-          this.display.append($('<div/>').addClass('loadTick'));
-        }
-      }
-      Cat.Inherits(JxlSprite);
-      Cat.Override(JxlSprite, 'update');
-      function Cat(graphic, x, y) {
-        this.JxlSprite(graphic, x, y, 32, 32);
-        this.addAnimation('run', [72,73,74,73], .30);
-        this.addAnimation('idle', [48,49,50,49], .50);
-        this.play('idle');
-        this.speed = -80;
-        this.drag = new JxlPoint(150,150);
-        this.acceleration.y = 500;
-      }
-      Cat.prototype.update = function(game, time) {
-       
-        if ('A' in game.keys) {
-          this.velocity.x = this.speed;
-          this._flipped = true;
-          this.play('run');
-        } else if ('D' in game.keys) {
-          this._flipped = false;
-          this.play('run');
-          this.velocity.x = -1*this.speed;
-        } else {
-          this.play('idle');
-        }
-        if('SPACE' in game.keys && this.onFloor) {
-          game.audio.play('jump');
-          this.velocity.y = -150;
-        } 
-        
-        this.JxlSprite_update(game, time);
-        
-        jxlU.collide(level, this);
-
-      }
-      Ship.Inherits(JxlSprite);
-      Ship.Override(JxlSprite, 'update');
-      function Ship(graphic, x, y) {
-        this.JxlSprite(graphic, x, y);
-
-      }
-      Ship.prototype.update = function(game, time) {
-        this.angle += 10;
-        this.JxlSprite_update(game, time);
-      }
-      Cloud.Inherits(JxlSprite);
-      function Cloud(graphic, x, y) {
-        this.JxlSprite(graphic, x, y);
-        this.dir = 1;
-        this.fixed = true;
-        /*
-        this.velocity.x = -1;
-        this.scrollFactor.x = .7;*/
-      }
-  
+      var Cloud = new Class({
+	Extends: JxlSprite,
+	initialize: function(graphic, x, y) {
+	  this.parent(graphic, x, y);
+	  this.dir = 1;
+	  this.fixed = true;
+	  /*
+	  this.velocity.x = -1;
+	  this.scrollFactor.x = .7;*/
+	}
+      });
     </script>
     <style type="text/css">
       body {
