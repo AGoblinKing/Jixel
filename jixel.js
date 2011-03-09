@@ -2435,7 +2435,7 @@ var AudioManager = new Class({
         this.sounds = {};
         this.channels = [];
         for(var i=0;i<16;i++) {
-            this.channels[i] = new Audio();
+            this.channels[i] = $('<audio/>')[0];
             this.channels[i].dead = true;
         }
     },
@@ -2469,17 +2469,17 @@ var AudioManager = new Class({
         }
     },
     unpause: function () {
-        for(var i in this.channels) {
+        for(var i = 0; i < this.channels.length; i++) {
             if(!this.channels[i].dead) this.channels[i].play();
         }
     },
     pause: function() {
-        for(var i in this.channels) {
-            this.channels[i].pause();
+        for(var i = 0; i < this.channels.length; i++) {
+           if(!this.channels[i].dead) this.channels[i].pause();
         }
     },
     update: function(time) {
-        for(var i in this.channels) {
+        for(var i = 0; i < this.channels.length; i++) {
             if(!this.channels[i].paused && this.channels[i].currentTime >= this.channels[i].finish) {
                 if(this.channels[i].loop) {
                     this.channels[i].currentTime = this.channels[i].start;
