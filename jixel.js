@@ -895,16 +895,27 @@ var JxlSprite = new Class({
         this._curFrame = this._curAnim.frames[this._caf]; 
         
     },
-    loadGraphic: function(Graphic, Animated) {
+    loadGraphic: function(Graphic, Animated, Reverse, Width, Height) {
         this.asset = Graphic;
-        if(Animated) {
-            this.height = Graphic.height;
-            this.width = Graphic.height;
+        Animated = (Animated === undefined) ? false : Animated;
+        Reverse = (Reverse === undefined) ? false : Reverse;
+        Width = ( Width == undefined) ? 0 : Width;
+        Height = ( Height == undefined) ? 0 : Height;
+        
+        if(Width == 0) {
+            if(Animated) {
+                this.height = Graphic.height;
+                this.width = Graphic.height;
+            } else {
+                this.height = Graphic.height;
+                this.width = Graphic.width;
+            }
         } else {
-            this.height = Graphic.height;
-            this.width = Graphic.width;
+            this.height = Height;
+            this.width = Width;
         }
         this.resetHelpers();
+        return this;
     },
     calcFrame: function(game) {
         var rx = this._curFrame * this.width;
@@ -924,19 +935,26 @@ var JxlSprite = new Class({
         this._graphicCTX.drawImage(this.asset.scaled,rx*game.scale,ry*game.scale,this.width*game.scale, this.height*game.scale, 0,0,this.width*game.scale, this.height*game.scale );
     
     },
-    // Rotations are stored on the fly instead of prebaked since they are cheaper here than in flixel
+    // Rotations are stored on the fly instead of prebaked since they are cheaper here than in flixel.
     render: function(ctx, game){
         if(!this.visible) return;
         this._point = this.getScreenXY(game, this._point);
-        
+        if(this.asset.scaled == undefined) {
+                this.asset.scaled = document.createElement('canvas');
+                ctx = this.asset.scaled.getContext('2d');
+                this.asset.scaled.height = this.asset.height*game.scale;
+                this.asset.scaled.width = this.asset.width*game.scale;
+                ctx.drawImage(this.asset, 0, 0, this.asset.width, this.asset.height, 0, 0, this.asset.width*game.scale, this.asset.height*game.scale);
+                
+        }
         this.calcFrame(game);
         var rCan = this._graphic;
         var mod = 1;
          
-        //lets not worry about frames for now.
         if(this.angle !=0) {
             mod = 1.5;
             var key = this.angle+':'+this._curFrame;
+            if(this.asset.rotations == undefined) this.asset.rotations = {};
             if(this.asset.rotations[key] == undefined) {
                 rCan=$('<canvas/>')[0];
                 rCan.width = this.asset.scaled.width*1.5;
@@ -953,6 +971,9 @@ var JxlSprite = new Class({
         
         ctx.drawImage(rCan, 0,0, this.width*game.scale*mod, this.height*game.scale*mod, this._point.x *game.scale, this._point.y*game.scale, this.width*game.scale*mod, this.height*game.scale*mod);    
     
+    },
+    onEmit: function() {
+        
     },
     updateAnimation: function(game, time) {
         if((this._curAnim != null) && (this._curAnim.delay > 0) && (this._curAnim.looped || !this.finished )) {
@@ -1008,11 +1029,22 @@ var JxlSprite = new Class({
     },
     resetHelpers: function () {
         this._boundsVisible = false;
-        this.origin.x = this.frameWidth*0.5;
-        this.origin.y = this.frameHeight*0.5;
-        this.frames = Math.floor(this.asset.width/this.width*this.asset.height/this.height);
+        this.origin.x = this.width*0.5;
+        this.origin.y = this.height*0.5;
+        if(this.asset) this.frames = Math.floor(this.asset.width/this.width*this.asset.height/this.height);
         this._caf = 0;
         this.refreshHulls();
+    },
+    createGraphic: function(Width, Height, Color) {
+		Color = ( Color == undefined) ? 0xFFFFFFFF : Color;
+		this.asset = document.createElement('canvas');
+        var ctx = this.asset.getContext('2d');
+        this.width = this.asset.width = this.frameWidth = Width;
+		this.height = this.asset.height = this.frameHeight = Height;
+        ctx.fillStyle = jxlU.makeRGBA(Color);
+        ctx.fillRect(0, 0, Width, Height);
+		this.resetHelpers();
+		return this;
     }
 });
 JxlSprite.LEFT = 0;
@@ -1032,6 +1064,7 @@ var JxlAnim = new Class({
 });
 
 var JxlParticle = new Class({
+    Extends: JxlSprite,
     initialize: function(Bounce) {
         this.parent();
         this._bounce = Bounce;
@@ -1058,8 +1091,8 @@ var JxlParticle = new Class({
 var JxlEmitter = new Class({
     Extends: JxlGroup,
     initialize: function(X, Y) {
-        X = isNaN(X) ? 0 : X;
-        Y = isNaN(Y) ? 0 : Y;
+        X = ( X == undefined) ? 0 : X;
+        Y = ( Y == undefined) ? 0 : Y;
         this.parent();
         this.x = X;
         this.y = Y;
@@ -1080,12 +1113,15 @@ var JxlEmitter = new Class({
         this.on = false;
         this.justEmitted = false;
     },
-    createSprites: function(Graphics, Quantity, BakedRotations, Multiple, Collide, Bounce) {
-        Quantity = isNaN(Quantity) ? 50 : Quantity;
-        BakedRotations = isNaN(BakedRotations) ? 16 : BakedRotations;
+    render: function(ctx, game) {
+        this.parent(ctx, game);  
+    },
+    createSprites: function(Graphics, Quantity, Dimensions, Multiple, Collide, Bounce) {
+        Quantity = ( Quantity == undefined) ? 50 : Quantity;
+        Dimensions = (Dimensions === undefined) ? new JxlPoint(Graphics.width, Graphics.height): Dimensions;
         Multiple = (Multiple === undefined) ? true : Multiple;
-        Collide = isNaN(Collide) ? 0 : Collide;
-        Bounce = isNaN(Bounce) ? 0 : Bounce;
+        Collide = ( Collide == undefined) ? 0 : Collide;
+        Bounce = ( Bounce == undefined) ? 0 : Bounce;
     
         this.members = new Array();
         var r;
@@ -1094,7 +1130,7 @@ var JxlEmitter = new Class({
         var sw;
         var sh;
         if(Multiple) {
-            s = new JxlSprite(Graphics);
+            s = new JxlSprite().loadGraphic(Graphics, true, false, Dimensions.x, Dimensions.y);
             tf = s.frames;
         }
         var i = 0;
@@ -1106,7 +1142,7 @@ var JxlEmitter = new Class({
                 
             if(Multiple) {
                 r = Math.random()*tf;
-                s.loadGraphic(Graphics,true);
+                s.loadGraphic(Graphics,true, false, Dimensions.x, Dimensions.y);
                 s.frame = r;
             } else {
                 s.loadGraphic(Graphics);
@@ -1133,22 +1169,22 @@ var JxlEmitter = new Class({
         this.height = Height;
     },
     setXSpeed: function(Min, Max) {
-        Min = isNaN(Min) ? 0 : Min;
-        Max = isNaN(Max) ? 0 : Max;
+        Min = ( Min == undefined) ? 0 : Min;
+        Max = ( Max == undefined) ? 0 : Max;
     
         this.minParticleSpeed.x = Min;
         this.maxParticleSpeed.x = Max;
     },
     setYSpeed: function(Min, Max) {
-        Min = isNaN(Min) ? 0 : Min;
-        Max = isNaN(Max) ? 0 : Max;
+        Min = ( Min == undefined) ? 0 : Min;
+        Max = ( Max == undefined) ? 0 : Max;
     
         this.minParticleSpeed.y = Min;
         this.maxParticleSpeed.y = Max;
     },
     setRotation: function(Min, Max) {
-        Min = isNaN(Min) ? 0 : Min;
-        Max = isNaN(Max) ? 0 : Max;
+        Min = ( Min == undefined) ? 0 : Min;
+        Max = ( Max == undefined) ? 0 : Max;
     
         this.minRotation = Min;
         this.maxRotation = Max;
@@ -1205,12 +1241,11 @@ var JxlEmitter = new Class({
     start: function(Explode, Delay, Quantity) {
         Explode = (Explode === undefined) ? true : Explode;
         Delay = isNaN(Delay) ? 0 : Delay;
-        Quantity = isNaN(Quantity) ? 0 : Quantity;
+        Quantity = ( Quantity == undefined) ? 0 : Quantity;
     
-        if(this.members.length <= 0)
-        {
+        if(this.members.length <= 0) {
             //FlxG.log("WARNING: there are no sprites loaded in your emitter.\nAdd some to FlxEmitter.members or use FlxEmitter.createSprites().");
-            return;
+            return this;
         }
         this._explode = Explode;
         if(!this._explode)
@@ -1238,6 +1273,49 @@ var JxlEmitter = new Class({
             else
                 this.delay = 0.1;//default value for particle streams
         }
+        return this;
+    },
+    emitParticle: function()  {
+        this._counter++;
+        var s = this.members[this._particle];
+        s.visible = true;
+        s.exists = true;
+        s.active = true;
+        s.x = this.x - (s.width>>1) + Math.random() * this.width;
+        s.y = this.y - (s.height>>1) + Math.random()* this.height;
+        s.velocity.x = this.minParticleSpeed.x;
+        if(this.minParticleSpeed.x != this.maxParticleSpeed.x) s.velocity.x += Math.random()*(this.maxParticleSpeed.x-this.minParticleSpeed.x);
+        s.velocity.y = this.minParticleSpeed.y;
+        if(this.minParticleSpeed.y != this.maxParticleSpeed.y) s.velocity.y += Math.random()*(this.maxParticleSpeed.y-this.minParticleSpeed.y);
+        s.acceleration.y = this.gravity;
+        s.angularVelocity = this.minRotation;
+        if(this.minRotation != this.maxRotation) s.angularVelocity += Math.random()*(this.maxRotation-this.minRotation);
+        if(s.angularVelocity != 0) s.angle = Math.random()*360-180;
+        s.drag.x = this.particleDrag.x;
+        s.drag.y = this.particleDrag.y;
+        this._particle++;
+        if(this._particle >= this.members.length)
+                this._particle = 0;
+        s.onEmit();
+        this.justEmitted = true;
+    },
+    stop: function(Delay) {
+        Delay = ( Delay == undefined) ? 3 : Delay;
+
+        this._explode = true;
+        this.delay = Delay;
+        if(this.delay < 0)
+                this.delay = -Delay;
+        this.on = false;
+    },
+    at: function(Obj) {
+        Obj.resetHelpers();
+        this.x = Obj.x + Obj.origin.x;
+        this.y = Obj.y + Obj.origin.y;
+    },
+    kill: function() {
+        this.parent();
+        this.on = false;
     }
 });
 
@@ -1647,7 +1725,7 @@ var JxlU = new Class({
         this.quadTreeDivisions = 3;
     },
     random: function(Seed) {
-        if(isNaN(Seed) || Seed === undefined)
+        if(( Seed == undefined) || Seed === undefined)
                             return Math.random();
         else
         {
@@ -1678,6 +1756,15 @@ var JxlU = new Class({
         quadTree.add(obj2,JxlQuadTree.B_LIST);
         return quadTree.overlap(true,callback);
     },
+    makeRGBA: function(Color) {
+		var f = Color.toString(16);
+		var a = parseInt(f.substr(0, 2), 16) / 255;
+		var r = parseInt(f.substr(2, 2), 16);
+		var g = parseInt(f.substr(4, 2), 16);
+		var b = parseInt(f.substr(6, 2), 16);
+
+		return ("rgba(" + r + "," + g + "," + b + "," + a + ")");
+	},
     collide: function(obj1, obj2) {
         if( (obj1 == null) || !obj1.exists ||
             (obj2 == null) || !obj2.exists )
@@ -2090,11 +2177,11 @@ var JxlU = new Class({
     },
     setWorldBounds: function(X, Y, Width, Height, Divisions) {
         //Set default values for optional parameters
-        X = (isNaN(X)) ? 0 : X;
-        Y = (isNaN(Y)) ? 0 : Y;
-        Width = (isNaN(Width)) ? 0 : Width;
-        Height = (isNaN(Height)) ? 0 : Height;
-        Divisions = (isNaN(Divisions)) ? 3 : Divisions;
+        X = (( X == undefined)) ? 0 : X;
+        Y = (( Y == undefined)) ? 0 : Y;
+        Width = (( Width == undefined)) ? 0 : Width;
+        Height = (( Height == undefined)) ? 0 : Height;
+        Divisions = (( Divisions == undefined)) ? 3 : Divisions;
     
         if(JxlQuadTree.bounds == null)
             JxlQuadTree.bounds = new JxlRect();
@@ -2479,7 +2566,8 @@ var AudioManager = new Class({
         }
     },
     update: function(time) {
-        for(var i = 0; i < this.channels.length; i++) {
+        var i = this.channels.length-1;
+        while(i >= 0 ) {
             if(!this.channels[i].paused && this.channels[i].currentTime >= this.channels[i].finish) {
                 if(this.channels[i].loop) {
                     this.channels[i].currentTime = this.channels[i].start;
@@ -2488,6 +2576,7 @@ var AudioManager = new Class({
                     this.channels[i].pause();
                 }
             }
+            i--;
         }
     },
     add: function(name, audio) {
@@ -2594,4 +2683,6 @@ var AssetManager = new Class({
       }
     }
 });
+
+
 var jxlU = new JxlU();

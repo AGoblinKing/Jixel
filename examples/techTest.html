@@ -8,12 +8,12 @@
     
     <link href='http://fonts.googleapis.com/css?family=Geo' rel='stylesheet' type='text/css'/>
     
-    <script type="text/javascript" src="../js/mootools-min.js"></script>
     <script type="text/javascript" src="../js/jquery.js"></script>
     <script type="text/javascript" src="../js/jquery-ui.js"></script>
+    <script type="text/javascript" src="../js/mootools-min.js"></script>
     <script type="text/javascript" src="../jixel.js"></script>
     <script type="text/javascript">
-      var game, level, player, cloud;
+      var game, level, player, cloud, emitter;
       $(function(){
         var can = $('<canvas/>')[0];
         can.getContext('2d')
@@ -38,6 +38,7 @@
                       'cloud':['image', 'assets/cloud.png'],
                       'ship':['image', 'assets/ship.png'],
                       'tiles':['image', 'assets/tilemap.png'],
+		      'keyboard':['sound', 'assets/keyboard_cat_remix.mp3'],
                       'autotiles': ['image', 'assets/autotiles.png'],
                       'autotiles_alt' : ['image', 'assets/autotiles_alt.png'],
                       'animals':['image', 'assets/animals.png']
@@ -47,29 +48,41 @@
         am.load(assets, function() {
           level = new JxlTileMap(0,112).loadMap(game, mapData, am.get('tiles'));
           
+		  emitter = new JxlEmitter(100,0);
+		  emitter.setXSpeed(-200, -100);
+		  emitter.setYSpeed(-200, 200);
+		  emitter.gravity = 500;
+		  emitter.s
+		  
+			var particles = 10;
+			var boomDelay = 3;
+			 
+			for(i = 0; i < particles; i++)
+			{
+				var particle = new JxlParticle(1);
+				particle.createGraphic(4, 4, Math.floor(Math.random() * 0xFFFFFFFF));
+				emitter.add(particle);
+			}
+		 
+		  game.state.add(emitter);
           game.state.add(new JxlTileMap(0,50,JxlTileMap.AUTO).loadMap(game, autoData, am.get('autotiles')));
           game.state.add(new JxlTileMap(0,100,JxlTileMap.ALT).loadMap(game, autoData, am.get('autotiles_alt')));
-	//  game.state.add(new JxlEmitter(0,50).createSprites(am.get('animals')));
+
           level.collideIndex = 2;
           game.state.add(level);
           cloud = new Cloud(am.get('cloud'), 0, 0);
           game.state.add(cloud);
           game.state.add(new Cloud(am.get('cloud'), 400, 40));
+	  
          /*
           var shipzor = new Ship(am.get('ship'), 100,100);
           game.add(shipzor);*/
-         var player = new Cat(am.get('animals'), 50, 0);
+	  var player = new Cat(am.get('animals'), 50, 0);
           game.state.add(player);
           game.follow(player);
-          
-          
-          for(var i=0;i<20;i++) {
-            game.state.add(new Ship(am.get('ship'), Math.random()*game.width,Math.random()*game.height));
-          }
-        
           game.start();
           game.showFPS();
-         game.audio.play('keyboard', true, 0, 12.5, .2);
+          game.audio.play('keyboard', true, 0, 12.5, .2);
          $('body').append(can);
         }, function() {
           //could add loadBar here
@@ -105,13 +118,17 @@
 	     this.play('idle');
 	   }
 	   if('SPACE' in game.keys && this.onFloor) {
+		emitter.setXSpeed(-50* ((this._flipped) ? -1 : 1), -10*( (this._flipped) ? -1 : 1));
 	     game.audio.play('jump');
+		  emitter.at(this);
+		  emitter.start(true, 1.2);
 	     this.velocity.y = -150;
 	   } 
 	   
 	   this.parent(game, time);
 	   
 	   jxlU.collide(level, this);
+	   jxlU.collide(level, emitter);
 	}
       });
       var Ship = new Class({
