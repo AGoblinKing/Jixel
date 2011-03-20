@@ -63,6 +63,11 @@ var Jixel = new Class({
            right:'0px',
            display:'none'
         }).appendTo('body');
+		//FPS Tracking
+		this.avgFPS = 0;
+		this.renderedFrames = 0;
+		this.timeSpent = 0;
+		
         this.ui.pauseMenu = $('<div/>').dialog({
             autoOpen : false,
             title : 'Game Paused',
@@ -258,7 +263,18 @@ var Jixel = new Class({
     update: function(delta) {
         this.doFollow(delta);
         if(this.showFPS) {
-            this.ui.fps.html(Math.floor(1/delta));
+		
+		    this.renderedFrames++;
+		    this.timeSpent += delta;
+			
+			if(this.timeSpent >= 1)
+			{
+				this.avgFPS = this.renderedFrames;
+				this.timeSpent = 0
+				this.renderedFrames = 0;
+			}
+			
+            this.ui.fps.html("FPS (Avg): "+this.avgFPS+ " (Cur): "+Math.floor(1/delta));
         }
         this.audio.update(delta);
         this.state.update(this, delta);
