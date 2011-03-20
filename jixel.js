@@ -983,6 +983,7 @@ var JxlSprite = new Class({
                 if(this._caf == this._curAnim.frames.length-1) {
                     if(this._curAnim.looped) this._caf = 0;
                     this.finished = true;
+					this.animationComplete(this._curAnim.name);
                 } else {
                     this._caf++;
                 }
@@ -990,6 +991,9 @@ var JxlSprite = new Class({
             }
         }
     },
+	animationComplete: function(name) {
+		
+	},
     addAnimation: function(name, frames, frameRate, looped ){
         if(frameRate == undefined)
             frameRate = 0;
@@ -2686,3 +2690,21 @@ var AssetManager = new Class({
 
 
 var jxlU = new JxlU();
+
+
+// Extensions  
+
+/* 
+
+@name: Number.clamp
+@desc:  Clamp a number between two values.
+
+@usage:   var num = 100;
+			   num.clamp(0, 50) -> 50
+			   num.clamp(0, 200) -> 100
+			   num.clamp(101, 200) -> 101
+*/
+Number.prototype.clamp = function(min, max) {
+		  return Math.min(Math.max(this, min), max);
+}
+		
