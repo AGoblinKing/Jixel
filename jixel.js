@@ -472,7 +472,7 @@ var JxlObject = new Class({
         return true;
     },
     collide: function(object) {
-        if(object == undefined) this;
+        if(object == undefined) object = this;
         return jxlU.collide(this, object);
     },
     preCollide: function(object) {},
