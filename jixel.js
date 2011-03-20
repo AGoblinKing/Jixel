@@ -10,6 +10,9 @@ var JxlState = new Class({
     add: function(object) {
         return this.defaultGroup.add(object);
     },
+	remove: function(object) {
+		this.defaultGroup.remove(object);
+	},
     preProcess: function(ctx, game) {
         ctx.clearRect(0,0, game.screenWidth(), game.screenHeight());
     },
@@ -274,7 +277,7 @@ var Jixel = new Class({
 				this.renderedFrames = 0;
 			}
 			
-            this.ui.fps.html("FPS (Avg): "+this.avgFPS+ " (Cur): "+Math.floor(1/delta));
+            this.ui.fps.html("Frame Rate (Avg): "+this.avgFPS+ " (Cur): "+Math.floor(1/delta));
         }
         this.audio.update(delta);
         this.state.update(this, delta);
@@ -999,7 +1002,7 @@ var JxlSprite = new Class({
                 if(this._caf == this._curAnim.frames.length-1) {
                     if(this._curAnim.looped) this._caf = 0;
                     this.finished = true;
-					this.animationComplete(this._curAnim.name);
+					this.animationComplete(this._curAnim.name, this._curAnim.looped);
                 } else {
                     this._caf++;
                 }
@@ -1007,7 +1010,7 @@ var JxlSprite = new Class({
             }
         }
     },
-	animationComplete: function(name) {
+	animationComplete: function(name, isLooped) {
 		
 	},
     addAnimation: function(name, frames, frameRate, looped ){
