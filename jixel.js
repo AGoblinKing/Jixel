@@ -284,6 +284,7 @@ var Jixel = new Class({
             this.ui.fps.html("Frame Rate (Avg): "+this.avgFPS+ " (Cur): "+Math.floor(1/delta));
         }
 		this.mouse.update();
+		this.audio.update(delta);
         this.state.update(this, delta);
         this.state.preProcess(this.ctx, this);
         this.state.render(this.ctx, this);
