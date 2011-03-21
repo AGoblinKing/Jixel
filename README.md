@@ -19,6 +19,6 @@ Desktop:
 http://www.jixel.org/Jixel-Demo
 
 Mobile:
-http://www.jixe.org/jx
+http://www.jixel.org/jx
 
 
