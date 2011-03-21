@@ -37,7 +37,7 @@ var Jixel = new Class({
         /*** Setup Core ***/
         this.state = new JxlState();
         this.canvas = canvas;
-        this.scale = 4;
+        this.scale = 1;
         this.autoPause = true;
         this.ctx = canvas.getContext('2d');
         this.bufferCanvas = $('<canvas/>')[0];
@@ -56,7 +56,14 @@ var Jixel = new Class({
         var self = this;
         this._scrollTarget = new JxlPoint();
         this.unfollow();
+		this.mouse = new JxlMouse(this);	
+		
         jxlU.setWorldBounds(0,0,this.width, this.height);
+		//FPS Tracking
+		this.avgFPS = 0;
+		this.renderedFrames = 0;
+		this.timeSpent = 0;
+		// End Of
         /*** Setup UI ***/
         this.ui = {};
         this.ui.fps = $('<div/>').css({
@@ -66,11 +73,7 @@ var Jixel = new Class({
            right:'0px',
            display:'none'
         }).appendTo('body');
-		//FPS Tracking
-		this.avgFPS = 0;
-		this.renderedFrames = 0;
-		this.timeSpent = 0;
-		
+	
         this.ui.pauseMenu = $('<div/>').dialog({
             autoOpen : false,
             title : 'Game Paused',
@@ -244,6 +247,7 @@ var Jixel = new Class({
         self.date = new Date();
         this.lastUpdate = this.date.getTime();
         if(!this.running) {
+			this.bindMouse();
             this.running = true;
             this.interval = setInterval(function() {
                 if(self.running) {
@@ -279,15 +283,23 @@ var Jixel = new Class({
 			
             this.ui.fps.html("Frame Rate (Avg): "+this.avgFPS+ " (Cur): "+Math.floor(1/delta));
         }
-        this.audio.update(delta);
+		this.mouse.update();
         this.state.update(this, delta);
         this.state.preProcess(this.ctx, this);
         this.state.render(this.ctx, this);
         this.state.postProcess(this.ctx, this);
     },
     click: function(e) {
-        //figure out where they clicked
-    }
+		
+    },
+	bindMouse: function() {
+		var game = this;
+		$(this.canvas).mousemove(function (e) {
+				var x = e.pageX - game.canvas.offsetLeft;
+				var y = e.pageY - game.canvas.offsetTop;
+				game.mouse.update(x, y, game.scroll.x, game.scroll.y);
+		}); // Binding to mouse move rather than frame tick, No point updating the mouse code unless the mouse has moved or clicked, why waste cpu time on a keyboard only game? Sound good?
+	}
 });
 var JxlPoint = new Class({
     initialize: function(x, y){
@@ -485,7 +497,7 @@ var JxlObject = new Class({
         
         x += Math.floor(game.scroll.x);
         y += Math.floor(game.scroll.y);
-        this._point = this.getScreenXY(this._point);
+        this._point = this.getScreenXY(game, this._point);
         if((x <= this._point.x) || (x >= this._point.x+this.width) || (y <= this._point.y) || (y >= this._point.y+this.height))
             return false;
         return true;
@@ -2706,6 +2718,156 @@ var AssetManager = new Class({
       }
     }
 });
+
+
+var JxlButton = new Class({
+	Extends: JxlGroup,
+	initialize: function(x, y, callback) {
+		this.parent();
+		this.x = x;
+		this.y = y;
+		this.width = 100;
+		this.height = 20;
+		this._off = new JxlSprite().createGraphic(this.width, this.height, 0xff7f7f7f);
+		this._off.solid = false;
+		this.add(this._off,true);
+		this._on  = new JxlSprite().createGraphic(this.width, this.height, 0xffffffff);
+		this._on.solid = false;
+		this.add(this._on,true);
+		this._offT = null;
+		this._onT = null;
+		this._callback = callback;
+		this._onToggle = false;
+		this._pressed = false;
+		this._initialized = false;
+		this._sf = null;
+		this.__game = null; // for mouse stuff
+	},
+	loadGraphic: function(sprite, highlight) {
+	        this._off = replace(this._off, sprite);
+			if(highlight == null)
+			{
+				if(this._on != this._off)
+					this.remove(_on);
+				this._on = this._off;
+			}
+			else
+				this._on = replace(this._on, highlight);
+			this._on.solid = this._off.solid = false;
+			this._off.scrollFactor = this.scrollFactor;
+			this._on.scrollFactor = this.scrollFactor;
+			this.width = this._off.width;
+			this.height = this._off.height;
+			this.refreshHulls();
+			return this;
+	},
+	//TODO 
+	loadText: function() {},
+	update: function(game, delta) {
+		    if(!this._initialized)
+			{
+				this.__game = game;
+				this._initialized = true;
+				var button = this;
+				$(this.__game.canvas).click(
+					function(e) {
+						button.onMouseUp(e, button);
+					}
+				);
+			}
+
+			this.parent(game, delta);
+			this.visibility(false);
+			if(this.overlapsPoint(game, game.mouse.x, game.mouse.y))
+			{
+				if(!game.mouse.pressed())
+					this._pressed = false;
+				else if(!this._pressed)
+					this._pressed = true;
+				this.visibility(!this._pressed);
+			}
+			if(this._onToggle) this.visibility(this._off.visible);
+	},
+	destroy: function(game, time) {
+		// Kill Mouse Handlers
+	},
+	visibility: function(On) {
+		    if(On)
+			{
+				this._off.visible = false;
+				if(this._offT != null) this._offT.visible = false;
+				this._on.visible = true;
+				if(this._onT != null) this._onT.visible = true;
+			}
+			else
+			{
+				this._on.visible = false;
+				if(this._onT != null) this._onT.visible = false;
+				this._off.visible = true;
+				if(this._offT != null) this._offT.visible = true;
+			}
+	},
+	onMouseUp: function(event, button) {
+		if(!button.exists || !button.visible || !button.active ||  (button._callback == null)) return;
+		if(button.overlapsPoint(button.__game, button.__game.mouse.x, button.__game.mouse.y)) {
+			button._callback();
+		}
+	}
+});
+var JxlMouse = new Class({
+	initialize: function(game) {
+		this.x = 0;
+		this.y = 0;
+		this.screenX = 0;
+		this.screenY = 0;
+	    this._current = 0;
+		this._last = 0;
+		this.cursor = null;
+		this._out = false;
+		this._game = game;
+	},
+	update: function(X, Y, XScroll, YScroll) {
+		if(!isNaN(X) &&!isNaN(Y)) {
+			this.screenX = X;
+			this.screenY = Y;
+			this.screenX *= this._game.scale;
+			this.screenY *= this._game.scale;
+			this.x = this.screenX - Math.floor(XScroll);
+			this.y = this.screenY - Math.floor(YScroll);
+			if((this._last == -1) && (this._current == -1))
+					this._current = 0;
+			else if((this._last == 2) && (this._current == 2))
+					this._current = 1;
+			this._last = this._current;
+		}
+	},
+	reset: function() {
+		this._current = 0;
+		this._last = 0;
+	},
+	pressed: function() {
+		return (this._current > 0);
+	},
+	justPressed: function() {
+		return (this._current == 2);
+	},
+	handleMouseDown: function() {
+		if(this._current > 0) this._current = 1;
+		else this._current = 2;
+	},
+	handleMouseUp: function() {
+		if(this._current > 0) this._current = -1;
+			else this._current = 0;
+	}
+});
+
+
+
+
+
+
+
+
 
 
 var jxlU = new JxlU();
