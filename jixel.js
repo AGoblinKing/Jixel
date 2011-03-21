@@ -284,7 +284,6 @@ var Jixel = new Class({
             this.ui.fps.html("Frame Rate (Avg): "+this.avgFPS+ " (Cur): "+Math.floor(1/delta));
         }
 		this.mouse.update();
-		this.audio.update(delta);
         this.state.update(this, delta);
         this.state.preProcess(this.ctx, this);
         this.state.render(this.ctx, this);
@@ -2745,15 +2744,19 @@ var JxlButton = new Class({
 		this.__game = null; // for mouse stuff
 	},
 	loadGraphic: function(sprite, highlight) {
-	        this._off = replace(this._off, sprite);
+			var jSprite = new JxlSprite(sprite); 
+	        this._off = this.replace(this._off, jSprite);
 			if(highlight == null)
 			{
 				if(this._on != this._off)
-					this.remove(_on);
+					this.remove(this._on);
 				this._on = this._off;
 			}
-			else
-				this._on = replace(this._on, highlight);
+			else{
+				var jSpriteHightlight = new JxlSprite(highlight);
+				this._on = this.replace(this._on, jSpriteHightlight);
+			}
+			
 			this._on.solid = this._off.solid = false;
 			this._off.scrollFactor = this.scrollFactor;
 			this._on.scrollFactor = this.scrollFactor;
@@ -2768,13 +2771,15 @@ var JxlButton = new Class({
 		    if(!this._initialized)
 			{
 				this.__game = game;
-				this._initialized = true;
 				var button = this;
+				
 				$(this.__game.canvas).click(
 					function(e) {
 						button.onMouseUp(e, button);
 					}
 				);
+				
+				this._initialized = true;
 			}
 
 			this.parent(game, delta);
@@ -2861,29 +2866,6 @@ var JxlMouse = new Class({
 			else this._current = 0;
 	}
 });
-
-
-var JxlMonitor = new Class({
-	initialize: function(size, _default) {
-		this.size = size;
-		if(size <= 0)
-			this.size = 1;
-		this._itr = 0;
-		this.data = new Array();
-	},
-	add: function(data) {
-		this._data[this._itr++] = data;
-			if(this._itr >= this._size)
-				this._itr = 0;
-	},
-	average: function() {
-		var sum = 0;
-		for(var i = 0; i < this._size; i++)
-				sum += this._data[i];
-			return sum/this._size;
-	}
-});
-
 
 var jxlU = new JxlU();
 
