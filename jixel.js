@@ -2863,12 +2863,26 @@ var JxlMouse = new Class({
 });
 
 
-
-
-
-
-
-
+var JxlMonitor = new Class({
+	initialize: function(size, _default) {
+		this.size = size;
+		if(size <= 0)
+			this.size = 1;
+		this._itr = 0;
+		this.data = new Array();
+	},
+	add: function(data) {
+		this._data[this._itr++] = data;
+			if(this._itr >= this._size)
+				this._itr = 0;
+	},
+	average: function() {
+		var sum = 0;
+		for(var i = 0; i < this._size; i++)
+				sum += this._data[i];
+			return sum/this._size;
+	}
+});
 
 
 var jxlU = new JxlU();
