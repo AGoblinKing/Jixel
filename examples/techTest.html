@@ -48,22 +48,6 @@
         am.load(assets, function() {
           level = new JxlTileMap(0,112).loadMap(game, mapData, am.get('tiles'));
           
-		  emitter = new JxlEmitter(100,0);
-		  emitter.setXSpeed(-200, -100);
-		  emitter.setYSpeed(-200, 200);
-		  emitter.gravity = 500;
-		  
-			var particles = 10;
-			var boomDelay = 3;
-			 
-			for(i = 0; i < particles; i++)
-			{
-				var particle = new JxlParticle(1);
-				particle.createGraphic(4, 4, Math.floor(Math.random() * 0xFFFFFFFF));
-				emitter.add(particle);
-			}
-		 
-		  game.state.add(emitter);
           game.state.add(new JxlTileMap(0,50,JxlTileMap.AUTO).loadMap(game, autoData, am.get('autotiles')));
           game.state.add(new JxlTileMap(0,100,JxlTileMap.ALT).loadMap(game, autoData, am.get('autotiles_alt')));
 
@@ -117,10 +101,8 @@
 	     this.play('idle');
 	   }
 	   if('SPACE' in game.keys && this.onFloor) {
-		emitter.setXSpeed(-50* ((this._flipped) ? -1 : 1), -10*( (this._flipped) ? -1 : 1));
 	     game.audio.play('jump');
-		  emitter.at(this);
-		  emitter.start(true, 1.2);
+
 	     this.velocity.y = -150;
 	   } 
 	   
