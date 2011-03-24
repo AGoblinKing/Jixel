@@ -103,11 +103,11 @@ var Jixel = new Class({
 	    resize: function() {
 		if(self.fullScreen) {
 		    if(!self.keepResolution) {
-			self.bufferCanvas.width = self.width = $(window).width();
-			self.bufferCanvas.height = self.height = $(window).height();
+			self.bufferCanvas.width = self.width = window.get('width');
+			self.bufferCanvas.height = self.height = window.get('height');
 		    }
-		    self.canvas.width = $(window).width();
-		    self.canvas.height = $(window).height();
+		    self.canvas.width = window.get('width');
+		    self.canvas.height = window.get('height');
 		}
 	    }
 	});
@@ -982,7 +982,7 @@ var JxlSprite = new Class({
             var key = this.angle+':'+this._curFrame;
             if(this.asset.rotations == undefined) this.asset.rotations = {};
             if(this.asset.rotations[key] == undefined) {
-                rCan=$('<canvas/>')[0];
+                rCan= document.createElement('canvas');
                 rCan.width = this.asset.scaled.width*1.5;
                 rCan.height = this.asset.scaled.height*1.5;
                 var rCTX = rCan.getContext('2d');
@@ -2752,7 +2752,7 @@ var JxlButton = new Class({
 				this.__game = game;
 				var button = this;
 				
-				$(this.__game.canvas).click(
+				this.__game.canvas.addEvent('click',
 					function(e) {
 						button.onMouseUp(e, button);
 					}
