@@ -10,9 +10,9 @@ var JxlState = new Class({
     add: function(object) {
         return this.defaultGroup.add(object);
     },
-	remove: function(object) {
-		this.defaultGroup.remove(object);
-	},
+    remove: function(object) {
+	    this.defaultGroup.remove(object);
+    },
     preProcess: function(ctx, game) {
         ctx.clearRect(0,0, game.screenWidth(), game.screenHeight());
     },
@@ -40,7 +40,7 @@ var Jixel = new Class({
         this.scale = 1;
         this.autoPause = true;
         this.ctx = canvas.getContext('2d');
-        this.bufferCanvas = $('<canvas/>')[0];
+        this.bufferCanvas = document.createElement('canvas');
         this._width(240);
         this._height(160);
         this.buffer = this.bufferCanvas.getContext('2d');
@@ -65,67 +65,65 @@ var Jixel = new Class({
 		this.timeSpent = 0;
 		// End Of
         /*** Setup UI ***/
-        this.ui = {};
-        this.ui.fps = $('<div/>').css({
-           fontWeight:'bold',
-           position:'fixed',
-           top:'0px',
-           right:'0px',
-           display:'none'
-        }).appendTo('body');
-	
-        this.ui.pauseMenu = $('<div/>').dialog({
-            autoOpen : false,
-            title : 'Game Paused',
-            closeText : '',
-            modal : true,
-            buttons : {
-                'Return to Game': function() {
-                    self.unpause();
-                }
-            },
-            close : function() {
-                self.unpause();
-            }
-        });
-        
+        this.ui = {
+	    fps: new Element('div', {
+		styles: {
+		    fontWeight: 'bold',
+		    position:'fixed',
+		    top:'0px',
+		    right:'0px',
+		    display:'none'
+		}
+	    }).inject(document.body),
+	    pauseMenu: new Jx.Dialog({
+		label: 'Jixel is Paused',
+		resize: false,
+		move: false,
+		toolbars: [new Jx.Toolbar({
+		    position: 'top',
+		    items: [
+			new Jx.Button({
+			    label: 'Unpause',
+			    onClick: function() {
+				self.unpause();
+			    }
+			})
+		    ]
+		})]
+	    })
+	};
         /*** Input Overrides ***/
-        this.overrideKeys = {37:'',38:'',39:'',40:'',32:''};
         this.overrideElements = {'INPUT':'','TEXTAREA':''};
-        this.mapKeys = {37:'A',38:'W',40:'S',39:'D',32:'SPACE'};
         /*** Setup Events ***/
-        $(window).blur(function() {
-           if(self.autoPause) self.pause();
+        window.addEvents({
+	    blur: function() {
+		if(self.autoPause) self.pause();
+	    },
+	    resize: function() {
+		if(self.fullScreen) {
+		    if(!self.keepResolution) {
+			self.bufferCanvas.width = self.width = $(window).width();
+			self.bufferCanvas.height = self.height = $(window).height();
+		    }
+		    self.canvas.width = $(window).width();
+		    self.canvas.height = $(window).height();
+		}
+	    }
+	});
+	canvas.addEvent('click', function(e) {
+	    self.click(e);   
         });
-        $(document).keyup(function(e){
-            delete self.keys[String.fromCharCode(e.keyCode)];
-            if(e.keyCode in self.mapKeys) {
-                delete self.keys[self.mapKeys[e.keyCode]];
-            }
+	document.body.addEvents({
+	    'keyup': function(e) {
+		delete self.keys[e.key.toUpperCase()];
+	    },
+	    'keydown': function(e) {
+		self.keys[e.key.toUpperCase()] = true;
+		if(self.overrideElements[document.activeElement.tagName] == undefined) {
+		    return false;
+		}
+	    }
         });
-        $(document).keydown(function(e){
-            self.keys[String.fromCharCode(e.keyCode)] = true;
-            if(e.keyCode in self.mapKeys) {
-                 self.keys[self.mapKeys[e.keyCode]] = true;
-            }
-            if(!(document.activeElement.tagName in self.overrideElements) && e.keyCode in self.overrideKeys) {
-                return false;
-            }
-        });
-        $(canvas).click(function(e) {
-          self.click(e);   
-        });
-        $(window).resize(function() {
-            if(self.fullScreen) {
-                if(!self.keepResolution) {
-                    self.bufferCanvas.width = self.width = $(window).width();
-                    self.bufferCanvas.height = self.height = $(window).height();
-                }
-                self.canvas.width = $(window).width();
-                self.canvas.height = $(window).height();
-            }
-        });
-        $(window).resize();
     },
     toggleFPS: function() {
         if(!this._showFPS) {
@@ -220,14 +218,14 @@ var Jixel = new Class({
             this.audio.unpause();
             this.keys = {};
             this.lastUpdate = new Date();
-            this.ui.pauseMenu.dialog('close');
+            this.ui.pauseMenu.hide();
         }
     },
     pause: function() {
         if(this.running) {
             this.running = false;
             this.audio.pause();
-            this.ui.pauseMenu.dialog('open');
+            this.ui.pauseMenu.show();
         }
     },
     screenWidth: function(width) {
@@ -265,25 +263,21 @@ var Jixel = new Class({
         this.scale = scale;
         this._width(this.width);
         this._height(this.height);
-        this.am.reload('image');
+        this.am.reload();
     },
     update: function(delta) {
         this.doFollow(delta);
         if(this.showFPS) {
-		
-		    this.renderedFrames++;
-		    this.timeSpent += delta;
-			
-			if(this.timeSpent >= 1)
-			{
-				this.avgFPS = this.renderedFrames;
-				this.timeSpent = 0
-				this.renderedFrames = 0;
-			}
-			
-            this.ui.fps.html("Frame Rate (Avg): "+this.avgFPS+ " (Cur): "+Math.floor(1/delta));
+	    this.renderedFrames++;
+	    this.timeSpent += delta;
+	    if(this.timeSpent >= 1) {
+		    this.avgFPS = this.renderedFrames;
+		    this.timeSpent = 0
+		    this.renderedFrames = 0;
+	    }
+            this.ui.fps.set('text',"Frame Rate (Avg): "+this.avgFPS+ " (Cur): "+Math.floor(1/delta));
         }
-		this.mouse.update();
+	this.mouse.update();
         this.state.update(this, delta);
         this.state.preProcess(this.ctx, this);
         this.state.render(this.ctx, this);
@@ -292,14 +286,14 @@ var Jixel = new Class({
     click: function(e) {
 		
     },
-	bindMouse: function() {
-		var game = this;
-		$(this.canvas).mousemove(function (e) {
-				var x = e.pageX - game.canvas.offsetLeft;
-				var y = e.pageY - game.canvas.offsetTop;
-				game.mouse.update(x, y, game.scroll.x, game.scroll.y);
-		}); // Binding to mouse move rather than frame tick, No point updating the mouse code unless the mouse has moved or clicked, why waste cpu time on a keyboard only game? Sound good?
-	}
+    bindMouse: function() {
+	var game = this;
+	this.canvas.addEvent('mousemove', function(e) {
+	    var x = e.page.x - game.canvas.offsetLeft;
+	    var y = e.page.y - game.canvas.offsetTop;
+	    game.mouse.update(x, y, game.scroll.x, game.scroll.y);
+	}); 
+    }
 });
 var JxlPoint = new Class({
     initialize: function(x, y){
@@ -902,7 +896,7 @@ var JxlSprite = new Class({
        
         //Could probably reduce memory/cpu here
         
-        this._graphic = $('<canvas/>')[0];
+        this._graphic = document.createElement('canvas');
         this._graphicCTX = this._graphic.getContext('2d');
         
         this.asset = asset;
@@ -2557,7 +2551,7 @@ var AudioManager = new Class({
         this.sounds = {};
         this.channels = [];
         for(var i=0;i<16;i++) {
-            this.channels[i] = $('<audio/>')[0];
+            this.channels[i] = document.createElement('audio');
             this.channels[i].dead = true;
         }
     },
@@ -2622,44 +2616,34 @@ var AssetManager = new Class({
     initialize: function(game) {
         this.game = game;
         this.assets = {};
-        this.batches = [];
+	this.batches = [];
     },
     get: function(name) {
         return this.assets[name];
     },
-    loadCheck: function(batch, name) {
-        this.batches[batch][name].completed = true;
-        this.batches[batch].count--;
-        if(this.batches[batch].count == 0) return true;
+    reload: function(callback) {
+	var self = this;
+	var ln = this.batches.length, ct = 0;
+	Array.each(this.batches, function(batch) {
+	    self.load(batch, function() {
+		ct++;
+		if(callback != undefined && ln == ct) callback();
+	    });
+	});
     },
-    reload: function(type) {
-        for(var i in this.assets) {
-            if($(assets[i]).data('type') == type) {
-                $(assets[i]).trigger('load');
-            } else {
-                
-            }
-        }
+    load: function(assets, callback, progress) {
+	this.batches.push(assets);
+	var self = this;
+	var ln = Object.getLength(assets), ct = 0;
+	Object.each(assets, function(val, key) {
+	    self.loadAsset(val[0], key, val[1], function(asset) {
+		self.assets[key] = asset;
+		ct++;
+		if(callback != undefined && ct >= ln) callback();
+	    });
+	});
     },
-    load: function(assets, callback, progress){
-      var self = this;
-      var batch = this.batches.length;
-      this.batches.push(assets);
-      this.batches[batch].count = -1;
-      for(var x in assets) {
-        this.batches[batch].count++;
-      }
-      for(var i in assets) {
-          this.loadAsset(assets[i][0], i, assets[i][1], function(item) {
-            if(self.loadCheck(batch, $(item).data('name'))) {
-                if(callback) callback();
-            } else {
-                if(progress) progress();
-            }
-          }, batch);
-      }
-    },
-    loadAsset: function(type, name, src, callback, batch) {
+    loadAsset: function(type, name, src, callback) {
       var self = this;
       if(name in this.assets) {
         if(callback) callback();
@@ -2671,23 +2655,17 @@ var AssetManager = new Class({
             var temp = new Audio(src);
             temp.src = src;
             temp.load();
-            $(temp).data('name',name);
-            $(temp).data('batch', batch);
-            $(temp).data('type', 'audio');
             this.assets[name] = temp;
             self.game.audio.add(name, temp);
             if(callback) callback(temp);
         
             break;
         case 'image':
-            var temp = $('<img/>')[0];
+            var temp = document.createElement('img');
             temp.src = src;
-            $(temp).data('batch', batch);
-            $(temp).data('type','image');
-            $(temp).data('name',name);
             this.assets[name] = temp;
-            $(temp).load(function() {
-                var can = $('<canvas/>')[0];
+            temp.addEvent('load', function() {
+                var can = document.createElement('canvas');
                 can.width = this.width;
                 can.height = this.height;
                 var ctx = can.getContext('2d');

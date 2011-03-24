@@ -2,20 +2,17 @@
 <html>
   <head>
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
-     <meta name="viewport" content="width=device-width; 
-	initial-scale=1; maximum-scale=1; user-scalable=0;"/>
-    <link type="text/css" rel="stylesheet" href="../css/ui-lightness/jquery-ui.css"/>
-    
+    <meta name="viewport" content="width=device-width; initial-scale=1; maximum-scale=1; user-scalable=0;"/>
+    <link type="text/css" rel="stylesheet" href="../themes/crispin/jxtheme.css"/>
     <link href='http://fonts.googleapis.com/css?family=Geo' rel='stylesheet' type='text/css'/>
-    
-    <script type="text/javascript" src="../js/jquery.js"></script>
-    <script type="text/javascript" src="../js/jquery-ui.js"></script>
-    <script type="text/javascript" src="../js/mootools-min.js"></script>
+    <script type="text/javascript" src="../lib/mootools-core.js"></script>
+    <script type="text/javascript" src="../lib/mootools-more.js"></script>
+    <script type="text/javascript" src="../lib/jxlib.js"></script>
     <script type="text/javascript" src="../jixel.js"></script>
     <script type="text/javascript">
       var game, level, player, cloud, emitter;
-      $(function(){
-        var can = $('<canvas/>')[0];
+      window.addEvent('domready', function(){
+        var can = document.createElement('canvas');
         can.getContext('2d')
         game = new Jixel(can);
      
@@ -66,7 +63,7 @@
           game.start();
           game.showFPS();
           game.audio.play('keyboard', true, 0, 12.5, .2);
-         $('body').append(can);
+	  $$('body').grab(can);
         }, function() {
           //could add loadBar here
         });
@@ -144,6 +141,9 @@
         overflow:hidden;
         font-family:'Geo';
       }
+      .jxDialogControls {
+	display:none;
+      }
       .ui-widget {
         font-family:'Geo' !important;
       }
@@ -158,6 +158,7 @@
      src="http://ajax.googleapis.com/ajax/libs/chrome-frame/1/CFInstall.min.js"></script>
 
     <style>
+
      .chromeFrameInstallDefaultStyle {
        width: 100%; /* default is 800px */
        border: 5px solid blue;
