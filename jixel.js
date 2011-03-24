@@ -78,6 +78,7 @@ var Jixel = new Class({
 	    pauseMenu: new Jx.Dialog({
 		label: 'Jixel is Paused',
 		resize: false,
+		openURL: '',
 		move: false,
 		toolbars: [new Jx.Toolbar({
 		    position: 'top',
@@ -113,7 +114,7 @@ var Jixel = new Class({
 	canvas.addEvent('click', function(e) {
 	    self.click(e);   
         });
-	document.body.addEvents({
+	document.addEvents({
 	    'keyup': function(e) {
 		delete self.keys[e.key.toUpperCase()];
 	    },
