@@ -6,16 +6,8 @@
     <link type="text/css" rel="stylesheet" href="jixel.css"/>
     <link href='http://fonts.googleapis.com/css?family=Geo' rel='stylesheet' type='text/css'/>
     <script type="text/javascript" src="../lib/mootools-core.js"></script>
-    <script type="text/javascript" src="../Jixel/jixel.js"></script>
-    <script type="text/javascript" src="../Jixel/ui.js"></script>
-    <script type="text/javascript" src="../Jixel/object.js"></script>
-    <script type="text/javascript" src="../Jixel/group.js"></script>
-    <script type="text/javascript" src="../Jixel/state.js"></script>
-    <script type="text/javascript" src="../Jixel/sprite.js"></script>
-    <script type="text/javascript" src="../Jixel/tilemap.js"></script>
-    <script type="text/javascript" src="../Jixel/audio.js"></script>
-    <script type="text/javascript" src="../Jixel/assetmanager.js"></script>
-    <script type="text/javascript" src="../Jixel/util.js"></script> 
+    <script type="text/javascript" src="/jixel.js"></script>
+
     <script type="text/javascript">
         var tileData =
 "1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1\n"+
@@ -35,7 +27,7 @@
                 Jxl.state = new GameState();
             });
             Jxl.start();
-        });
+        }, 640, 480);
         
         var GameState = new Class({
            Extends: Jxl.State,
@@ -47,7 +39,7 @@
             },
             update: function(delta) {
                 this.parent(delta);
-                Jxl.u.collide(this.animal, this.map);
+               //Jxl.u.collide(this.animal, this.map);
             }
         });
         var Cat = new Class({
