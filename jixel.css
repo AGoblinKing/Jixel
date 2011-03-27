@@ -9,6 +9,10 @@
     background-color: rgba(1, 1, 1, .6);
 }
 .jxDialog {
+      -webkit-animation-name: pulse;
+-webkit-animation-duration: 1.5s;
+-webkit-animation-iteration-count: infinite;
+-webkit-animation-timing-function: ease-in-out;
     width: 200px;
     height: 200px;
     background-color: rgba(1, 1, 1, .4);
@@ -19,7 +23,6 @@
     margin-left: -100px;
     border-radius: 15px;
     border: 5px solid black;
-    box-shadow: 2px 2px 5px black;
     color:white;
     font-size:20pt;
     font-weight:bold;
@@ -75,12 +78,12 @@
 
 @-webkit-keyframes pulse {
     0% {
-            -webkit-box-shadow: 0 0 12px rgba(51,204,255,.7);
+            box-shadow: 0 0 12px rgba(51,204,255,.7);
     }
     50% {
-            -webkit-box-shadow: 0 0 12px rgba(51,204,255,1);
+            box-shadow: 0 0 12px rgba(51,204,255,1);
     }
     100% {
-            -webkit-box-shadow: 0 0 12px rgba(51,204,255,.7);
+            box-shadow: 0 0 12px rgba(51,204,255,.7);
     }
 }
