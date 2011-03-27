@@ -3,16 +3,19 @@
  * Jixel and then instantiate Jxl.
  ***/
 var Jixel = new Class({
-    init: function(callback) {
+    init: function(callback, width, height) {
         var self = this;
+        width = (width === undefined) ? 240 : width;
+        height = (height === undefined) ? 160 : height;
+        
         window.addEvent('domready', function() {
             self.state = new Jxl.State();
             self.canvas = new Element('canvas');
             self.buffer = self.canvas.getContext('2d');
             self.scale = 1;
-            self.autoPause = false;
-            self._width(240);
-            self._height(160);
+            self.autoPause = true;
+            self._width(width);
+            self._height(height);
             self.refresh = 16;
             self.running = false;
             self.fullScreen = false;
@@ -119,13 +122,13 @@ var Jixel = new Class({
     showFPS: function() {
         if(!this._showFPS) {
             this._showFPS = true;
-            this.ui.fps.render(document.body);
+            this.UI.fps.render(document.body);
         }
     },
     hideFPS: function() {
         if(this._showFPS) {
             this._showFPS = false;
-            this.ui.fps.destroy();
+            this.UI.fps.destroy();
         }
     },
     _width: function(width) {
@@ -146,14 +149,14 @@ var Jixel = new Class({
             this.audio.unpause();
             this.keys = {};
             this.lastUpdate = new Date();
-            this.ui.pauseMenu.destroy();
+            this.UI.pause.destroy();
         }
     },
     pause: function() {
         if(this.running) {
             this.running = false;
             this.audio.pause();
-            this.ui.pauseMenu.render(document.body);
+            this.UI.pause.render(document.body);
         }
     },
     screenWidth: function(width) {

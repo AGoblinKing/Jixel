@@ -42,10 +42,25 @@ Jxl.UI.Dialog = new Class({
 Jxl.UI.Button = new Class({
     Extends: Jxl.UI.Object,
     properties: {
-	class: 'jxlButton'
+	class: 'jxButton'
     }
 });
 
+Jxl.UI.pause = new Jxl.UI.Dialog({
+   id: 'pauseMenu',
+   html: 'Jixel is Paused',
+   members: {
+	'unpause': new Jxl.UI.Button({
+	  html: 'Resume!' ,
+	  events: {
+	    click: function() {
+		Jxl.unpause();
+	    }
+	  }
+	})
+   },
+   modal: true
+});
 Jxl.UI.fps = new Jxl.UI.Object({
     styles: {
         fontWeight: 'bold',
