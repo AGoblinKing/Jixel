@@ -31,7 +31,8 @@
 #pauseMenu {
     padding:10px;
     height: 80px;
-    margin-top: -40px;
+    margin-top: -50px;
+    margin-left: -110px;
 }
 
 .jxButton {
