@@ -205,7 +205,7 @@ var Jixel = new Class({
                     this.timeSpent = 0
                     this.renderedFrames = 0;
             }
-            this.UI.fps.html.set('text',"Frame Rate (Avg): "+this.avgFPS+ " (Cur): "+Math.floor(1/delta));
+            this.UI.fps.html.set('text',"(Cur): "+Math.floor(1/delta));
         }
     },
     update: function(delta) {
