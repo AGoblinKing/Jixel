@@ -10,11 +10,15 @@
     <script type="text/javascript" src="../lib/jxlib.js"></script>
     <script type="text/javascript" src="../jixel.js"></script>
     <script type="text/javascript">
+    function loaded() {
+      
+    }
       var game, level, player, cloud, emitter;
       window.addEvent('domready', function(){
         var can = document.createElement('canvas');
         can.getContext('2d')
         game = new Jixel(can);
+	game.changeScale(3);
      
         var am = game.am;
         var mapData =
@@ -35,13 +39,10 @@
                       'cloud':['image', 'assets/cloud.png'],
                       'ship':['image', 'assets/ship.png'],
                       'tiles':['image', 'assets/tilemap.png'],
-		      'keyboard':['sound', 'assets/keyboard_cat_remix.mp3'],
                       'autotiles': ['image', 'assets/autotiles.png'],
                       'autotiles_alt' : ['image', 'assets/autotiles_alt.png'],
                       'animals':['image', 'assets/animals.png']
                     };
-                     
-        game.changeScale(3);
         am.load(assets, function() {
           level = new JxlTileMap(0,112).loadMap(game, mapData, am.get('tiles'));
           
@@ -62,7 +63,7 @@
           game.follow(player);
           game.start();
           game.showFPS();
-          game.audio.play('keyboard', true, 0, 12.5, .2);
+          //game.audio.play('keyboard', true, 0, 12.5, .2);
 	  $$('body').grab(can);
         }, function() {
           //could add loadBar here

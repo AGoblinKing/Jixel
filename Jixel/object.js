@@ -3,21 +3,27 @@
  * Represents a single point in space
  ***/
 Jxl.Point = new Class({
-    initialize: function(params){
-        Object.merge(this, Jxl.Point.DEFAULTS, params);
+    Implements: [Options],
+    initialize: function(options) {
+        this.setOptions(options);
+        Object.merge(this, this.options);
+    },
+    options: {
+        x: 0,
+        y: 0
     }
 });
-Jxl.Point.DEFAULTS = {
-    x: 0,
-    y: 0
-}
 /***
  * Represents a Rectangle
  ***/
 Jxl.Rect = new Class({
     Extends: Jxl.Point,
     initialize: function(params) {
-        this.parent(Object.merge({}, Jxl.Rect.DEFAULTS, params));
+        this.parent(params);
+    },
+    options: {
+        width: 0,
+        height: 0
     },
     left: function() {
         return this.x;
@@ -32,17 +38,54 @@ Jxl.Rect = new Class({
         return this.y+this.height;
     }
 });
-Jxl.Rect.DEFAULTS = {
-    width: 0,
-    height: 0
-};
 /***
  * Base Game Object.
  ***/
 Jxl.Object = new Class({
     Extends: Jxl.Rect,
-    initialize: function(params) {
-        this.parent(Object.merge({}, Jxl.Object.DEFAULTS, params));
+    initialize: function(options) {
+        this.parent(options);
+    },
+    options: {
+        _point: new Jxl.Point(),
+        collideLeft: true,
+        collideRight: true,
+        collideTop: true,
+        collideBottom: true,
+        origin: new Jxl.Point(),
+        velocity: new Jxl.Point(),
+        acceleration: new Jxl.Point(),
+        _pZero: new Jxl.Point(),
+        drag: new Jxl.Point(),
+        maxVelocity: new Jxl.Point({x: 10000, y: 10000}),
+        angle: 0,
+        angularVelocity: 0,
+        angularDrag: 0,
+        angularAcceleration: 0,
+        maxAngular: 10000,
+        thrust: 0,
+        exists: true,
+        visible: true,
+        border: {
+            visible: false,
+            thickness: 2,
+            color: new Color('#f00')
+        },
+        active: true,
+        solid: true,
+        fixed: false,
+        moves: true,
+        colHullMinus: new Jxl.Point(),
+        health: 1,
+        dead: false,
+        _flicker: false,
+        _flickerTimer: -1,
+        scrollFactor: new Jxl.Point({x: 1, y: 1}),
+        colHullX: new Jxl.Rect(),
+        colHullY: new Jxl.Rect(),
+        colVector: new Jxl.Point(),
+        colOffsets: [new Jxl.Point()],
+        _group: false  
     },
     refreshHulls: function() {
         var cx = this.colHullMinus.x,
@@ -197,7 +240,17 @@ Jxl.Object = new Class({
         this.exists = false;
         this.dead = true;
     },
-    render: function() {},
+    render: function() {
+        if(this.border.visible) {
+            this._point = this.getScreenXY(this._point);
+            this.renderBorder(); 
+        }
+    },
+    renderBorder: function(point) {
+        Jxl.buffer.strokeStyle = this.border.color;
+        Jxl.buffer.lineWidth = this.border.thickness;
+        Jxl.buffer.strokeRect(this._point.x-this.border.thickness, this._point.y-this.border.thickness, this.width+this.border.thickness, this.height+this.border.thickness);
+    },
     getScreenXY: function(point) {
         if(point == undefined) point = new Jxl.Point();
         point.x = Math.floor(this.x+Jxl.u.roundingError)+Math.floor(Jxl.scroll.x*this.scrollFactor.x);
@@ -205,39 +258,4 @@ Jxl.Object = new Class({
         return point;
     }
 });
-Jxl.Object.DEFAULTS = {
-    _point: new Jxl.Point(),
-    collideLeft: true,
-    collideRight: true,
-    collideTop: true,
-    collideBottom: true,
-    origin: new Jxl.Point(),
-    velocity: new Jxl.Point(),
-    acceleration: new Jxl.Point(),
-    _pZero: new Jxl.Point(),
-    drag: new Jxl.Point(),
-    maxVelocity: new Jxl.Point({x: 10000, y: 10000}),
-    angle: 0,
-    angularVelocity: 0,
-    angularDrag: 0,
-    angularAcceleration: 0,
-    maxAngular: 10000,
-    thrust: 0,
-    exists: true,
-    visible: true,
-    active: true,
-    solid: true,
-    fixed: false,
-    moves: true,
-    colHullMinus: new Jxl.Point(),
-    health: 1,
-    dead: false,
-    _flicker: false,
-    _flickerTimer: -1,
-    scrollFactor: new Jxl.Point({x: 1, y: 1}),
-    colHullX: new Jxl.Rect(),
-    colHullY: new Jxl.Rect(),
-    colVector: new Jxl.Point(),
-    colOffsets: [new Jxl.Point()],
-    _group: false
-};
+

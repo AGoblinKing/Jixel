@@ -2,7 +2,7 @@ var connect = require('connect'),
     jsp = require('./node_modules/uglify-js/lib/parse-js'),
     pro = require('./node_modules/uglify-js/lib/process');
     
-var pkg = ['jixel', 'ui', 'object', 'group', 'state', 'sprite', 'tilemap', 'audio', 'assetmanager', 'util'];
+var pkg = ['jixel', 'object', 'group', 'state', 'sprite', 'tilemap', 'audio', 'assetmanager', 'util', 'ui', 'mouse'];
 
 var server = connect.createServer();
 server.use(connect.router(function(app) {
@@ -21,10 +21,9 @@ function pack(obj, basedir) {
         rs += fs.readFileSync(basedir+obj+'.js');
     });
     fs.writeFile(__dirname+'/jixel.js', rs);
-    /*
     var ast = jsp.parse(rs);
     ast = pro.ast_mangle(ast);
     ast = pro.ast_squeeze(ast);
-    fs.writeFile(__dirname+'/jixel.compressed.js', pro.gen_code(ast));*/
+    fs.writeFile(__dirname+'/jixel.compressed.js', pro.gen_code(ast));
     return rs;
 }

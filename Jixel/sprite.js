@@ -1,7 +1,7 @@
 Jxl.Sprite = new Class({
     Extends: Jxl.Object,
-    initialize: function(params) {
-        this.parent(Object.merge({}, Jxl.Sprite.DEFAULTS, params));
+    initialize: function(options) {
+        this.parent(options);
         this.buffer = new Element('canvas', {
             width: this.width,
             height: this.height
@@ -10,6 +10,25 @@ Jxl.Sprite = new Class({
         this.bufferCTX.drawImage(this.graphic, 0, 0, this.width, this.height, 0, 0, this.width, this.height);
         this.resetHelpers();
         document.body.grab(this.buffer);
+    },
+    options: {
+	isSprite: true,
+	angle: 0,
+	_alpha: 1,
+	_color: 0x00ffffff,
+	_blend: null,
+	scale: new Jxl.Point({x: 1,y: 1}),
+	_facing: 1,
+	_animations: {},
+	_flipped: 0,
+	_curFrame: 0,
+	_frameTimer: 0,
+	finished: false,
+	_caf: 0,
+	offset: new Jxl.Point(),
+	_curAnim: null,
+	animated: false,
+	graphic: new Element('canvas')
     },
     play: function(name, force) {
         if(force == undefined) force = false;
@@ -41,6 +60,7 @@ Jxl.Sprite = new Class({
         if(this.animated) this.calcFrame();
         var rCan = this.buffer;
         this._point = this.getScreenXY(this._point);
+	if(this.border.visible || Jxl.showBB) this.renderBorder(this._point);
         /*
         if(this.angle !=0) {
             mod = 1.5;
@@ -142,25 +162,6 @@ Jxl.Sprite.LEFT = 0;
 Jxl.Sprite.RIGHT = 1;
 Jxl.Sprite.UP = 2;
 Jxl.Sprite.DOWN = 3;
-Jxl.Sprite.DEFAULTS = {
-    isSprite: true,
-    angle: 0,
-    _alpha: 1,
-    _color: 0x00ffffff,
-    _blend: null,
-    scale: new Jxl.Point({x: 1,y: 1}),
-    _facing: 1,
-    _animations: {},
-    _flipped: 0,
-    _curFrame: 0,
-    _frameTimer: 0,
-    finished: false,
-    _caf: 0,
-    offset: new Jxl.Point(),
-    _curAnim: null,
-    animated: false,
-    graphic: new Element('canvas')
-};
 
 
 Jxl.Anim = new Class({

@@ -1,7 +1,28 @@
 Jxl.TileMap = new Class({
     Extends: Jxl.Object,
-    initialize: function(params) {
-        this.parent(Object.merge({}, Jxl.TileMap.DEFAULTS, params));
+    initialize: function(options) {
+        this.parent(options);
+    },
+    options: {
+        auto: Jxl.TileMapOFF,
+        collideIndex: 1,
+        startingIndex: 0,
+        drawIndex: 1,
+        widthInTiles: 0,
+        heightInTiles: 0,
+        totalTiles: 0,
+        _buffer: null,
+        _bufferLoc: new Jxl.Point(),
+        _flashRect2: new Jxl.Rect(),
+        _flashRect: new Jxl.Rect(),
+        _data: null,
+        _tileWidth: 0,
+        _tileHeight: 0,
+        _rects: null,
+        _pixels: null,
+        _block: new Jxl.Object({width:0, height:0, fixed: true}),
+        _callbacks: new Array(),
+        fixed: true   
     },
     loadMap : function(MapData, TileGraphic, TileWidth, TileHeight) {
         var c, cols, rows = MapData.split("\n");
@@ -22,7 +43,7 @@ Jxl.TileMap = new Class({
         //Pre-Process the map data if its auto-tiled
         var i;
         this.totalTiles = this.widthInTiles * this.heightInTiles;
-        if(this.auto > Jxl.TileMap.OFF)
+        if(this.auto > Jxl.TileMapOFF)
         {
             this.collideIndex = this.startingIndex = this.drawIndex = 1;
             i = 0;
@@ -80,7 +101,7 @@ Jxl.TileMap = new Class({
             cri = ri;
             for(c = 0; c < this._screenCols; c++) {
                 var _flashRect = this._rects[cri++];
-                if(_flashRect != null)
+                if(_flashRect != null) 
                     Jxl.buffer.drawImage(this._pixels, _flashRect[0], _flashRect[1],
                             _flashRect[2], _flashRect[3], _flashPoint.x,
                             _flashPoint.y,  this._tileWidth, this._tileHeight);
@@ -117,7 +138,7 @@ Jxl.TileMap = new Class({
         if((Index % this.widthInTiles <= 0) || (this._data[Index-1] > 0))									//LEFT
             this._data[Index] += 8;
             
-        if((this.auto == Jxl.TileMap.ALT) && (this._data[Index] == 15))	//The alternate algo checks for interior corners
+        if((this.auto == Jxl.TileMapALT) && (this._data[Index] == 15))	//The alternate algo checks for interior corners
         {
             if((Index % this.widthInTiles > 0) && (Index+this.widthInTiles < this.totalTiles) && (this._data[Index+this.widthInTiles-1] <= 0))
                 this._data[Index] = 1;		//BOTTOM LEFT OPEN
@@ -177,6 +198,13 @@ Jxl.TileMap = new Class({
         }
         return false;
     },
+    renderTileBB: function(X, Y) {
+        if((X >= this.widthInTiles) || (Y >= this.heightInTiles))
+            return;
+        Jxl.buffer.strokeStyle = this.border.color;
+        Jxl.buffer.lineWidth = this.border.thickness;
+        Jxl.buffer.strokeRect(this._point.x-this.border.thickness+X*this.tileWidth, this._point.y-this.border.thickness+Y*this.tileHeight, this.tileWidth+this.border.thickness, this.tileHeight+this.border.thickness);
+    },
     setTile: function(X, Y, Tile, UpdateGraphics) {
         UpdateGraphics = (UpdateGraphics === undefined) ? true : UpdateGraphics;
         if((X >= this.widthInTiles) || (Y >= this.heightInTiles))
@@ -196,7 +224,7 @@ Jxl.TileMap = new Class({
         
         this.refresh = true;
         
-        if(this.auto == FlxTilemap.OFF)
+        if(this.auto == Jxl.TilemapOFF)
         {
             this.updateTile(Index);
             return ok;
@@ -351,9 +379,9 @@ Jxl.TileMap = new Class({
         return false;
     }
 });
-Jxl.TileMap.OFF =  0;
-Jxl.TileMap.AUTO =  1;
-Jxl.TileMap.ALT = 2;
+Jxl.TileMapOFF =  0;
+Jxl.TileMapAUTO =  1;
+Jxl.TileMapALT = 2;
 Jxl.TileMap.arrayToCSV = function(Data, Width) {
     var r = 0;
     var c;
@@ -376,26 +404,6 @@ Jxl.TileMap.arrayToCSV = function(Data, Width) {
     }
     return csv;
 }
-Jxl.TileMap.DEFAULTS = {
-    auto: Jxl.TileMap.OFF,
-    collideIndex: 1,
-    startingIndex: 0,
-    drawIndex: 1,
-    widthInTiles: 0,
-    heightInTiles: 0,
-    totalTiles: 0,
-    _buffer: null,
-    _bufferLoc: new Jxl.Point(),
-    _flashRect2: new Jxl.Rect(),
-    _flashRect: new Jxl.Rect(),
-    _data: null,
-    _tileWidth: 0,
-    _tileHeight: 0,
-    _rects: null,
-    _pixels: null,
-    _block: new Jxl.Object({width:0, height:0, fixed: true}),
-    _callbacks: new Array(),
-    fixed: true 
-};
+
 
        

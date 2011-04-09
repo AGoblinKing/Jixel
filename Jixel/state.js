@@ -1,7 +1,12 @@
 Jxl.State = new Class({
-    initialize: function(params) {
-        Object.merge(this, Jxl.State.DEFAULTS, params);
-        this.create();
+    Implements: [Options],
+    initialize: function(options) {
+        this.setOptions(options);
+        Object.merge(this, this.options);
+	this.create();
+    },
+    options: {
+	defaultGroup: new Jxl.Group()
     },
     create: function() {
     
@@ -30,7 +35,3 @@ Jxl.State = new Class({
         this.defaultGroup.destroy();
     }
 });
-
-Jxl.State.DEFAULTS = {
-    defaultGroup: new Jxl.Group()
-}

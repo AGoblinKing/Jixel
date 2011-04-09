@@ -13,6 +13,8 @@ var Jixel = new Class({
             self.canvas = new Element('canvas');
             self.buffer = self.canvas.getContext('2d');
             self.scale = 1;
+            self.mouse = new Jxl.Mouse();
+            self.showBB = false;
             self.autoPause = true;
             self._width(width);
             self._height(height);
@@ -205,7 +207,7 @@ var Jixel = new Class({
                     this.timeSpent = 0
                     this.renderedFrames = 0;
             }
-            this.UI.fps.html.set('text',"Frame Rate (Avg): "+this.avgFPS+ " (Cur): "+Math.floor(1/delta));
+            this.UI.fps.html.set('text',"(Cur): "+Math.floor(1/delta));
         }
     },
     update: function(delta) {
@@ -214,6 +216,7 @@ var Jixel = new Class({
         this.state.update(delta);
         this.state.preProcess();
         this.state.render();
+        this.mouse.render();
         this.state.postProcess();
     },
     click: function() {}

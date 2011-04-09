@@ -13,6 +13,8 @@ var Jixel = new Class({
             self.canvas = new Element('canvas');
             self.buffer = self.canvas.getContext('2d');
             self.scale = 1;
+            self.mouse = new Jxl.Mouse();
+            self.showBB = false;
             self.autoPause = true;
             self._width(width);
             self._height(height);
@@ -214,102 +216,39 @@ var Jixel = new Class({
         this.state.update(delta);
         this.state.preProcess();
         this.state.render();
+        this.mouse.render();
         this.state.postProcess();
     },
     click: function() {}
 });
 
 var Jxl = new Jixel();
-Jxl.UI = {};
-Jxl.UI.Object = new Class({
-    initialize: function(properties) {
-	this.members = Object.merge(this.members, properties.members);
-	properties.members = undefined;
-	this.properties = Object.merge(this.properties, properties);
-    },
-    properties: {},
-    members: {},
-    rendered: false,
-    render: function(to) {
-        this.rendered = true;
-	var self = this;
-	this.html = new Element('div', this.properties);
-	Object.each(this.members, function(value, key) {
-	    self.html.grab(value.render().html.set('id', key));
-	});
-	if(to !== undefined) to.grab(this.html);
-	return this;
-    },
-    destroy: function() {
-        this.rendered = false;
-	this.html.dispose();
-    }
-});
 
-Jxl.UI.Dialog = new Class({
-    Extends: Jxl.UI.Object,
-    render: function(to) {
-	this.parent();
-	this.html.set('class', 'jxDialog');
-	if(this.properties.modal === true) {
-	    this.html = new Element('div', {
-		'class': 'jxModal'
-	    }).grab(this.html);
-	}
-	if(to !== undefined) to.grab(this.html);
-	return this;
-    }
-});
-
-Jxl.UI.Button = new Class({
-    Extends: Jxl.UI.Object,
-    properties: {
-	class: 'jxButton'
-    }
-});
-
-Jxl.UI.pause = new Jxl.UI.Dialog({
-   id: 'pauseMenu',
-   html: 'Jixel is Paused',
-   members: {
-	'unpause': new Jxl.UI.Button({
-	  html: 'Resume!' ,
-	  events: {
-	    click: function() {
-		Jxl.unpause();
-	    }
-	  }
-	})
-   },
-   modal: true
-});
-Jxl.UI.fps = new Jxl.UI.Object({
-    styles: {
-        fontWeight: 'bold',
-        position:'fixed',
-        top:'0px',
-        right:'0px'
-    }
-});
 /***
  * Represents a single point in space
  ***/
 Jxl.Point = new Class({
-    initialize: function(params){
-        Object.merge(this, Jxl.Point.DEFAULTS, params);
+    Implements: [Options],
+    initialize: function(options) {
+        this.setOptions(options);
+        Object.merge(this, this.options);
+    },
+    options: {
+        x: 0,
+        y: 0
     }
 });
-Jxl.Point.DEFAULTS = {
-    x: 0,
-    y: 0
-}
 /***
  * Represents a Rectangle
  ***/
 Jxl.Rect = new Class({
     Extends: Jxl.Point,
     initialize: function(params) {
-        this.parent(Object.merge({}, Jxl.Rect.DEFAULTS, params));
+        this.parent(params);
+    },
+    options: {
+        width: 0,
+        height: 0
     },
     left: function() {
         return this.x;
@@ -324,17 +263,54 @@ Jxl.Rect = new Class({
         return this.y+this.height;
     }
 });
-Jxl.Rect.DEFAULTS = {
-    width: 0,
-    height: 0
-};
 /***
  * Base Game Object.
  ***/
 Jxl.Object = new Class({
     Extends: Jxl.Rect,
-    initialize: function(params) {
-        this.parent(Object.merge({}, Jxl.Object.DEFAULTS, params));
+    initialize: function(options) {
+        this.parent(options);
+    },
+    options: {
+        _point: new Jxl.Point(),
+        collideLeft: true,
+        collideRight: true,
+        collideTop: true,
+        collideBottom: true,
+        origin: new Jxl.Point(),
+        velocity: new Jxl.Point(),
+        acceleration: new Jxl.Point(),
+        _pZero: new Jxl.Point(),
+        drag: new Jxl.Point(),
+        maxVelocity: new Jxl.Point({x: 10000, y: 10000}),
+        angle: 0,
+        angularVelocity: 0,
+        angularDrag: 0,
+        angularAcceleration: 0,
+        maxAngular: 10000,
+        thrust: 0,
+        exists: true,
+        visible: true,
+        border: {
+            visible: false,
+            thickness: 2,
+            color: new Color('#f00')
+        },
+        active: true,
+        solid: true,
+        fixed: false,
+        moves: true,
+        colHullMinus: new Jxl.Point(),
+        health: 1,
+        dead: false,
+        _flicker: false,
+        _flickerTimer: -1,
+        scrollFactor: new Jxl.Point({x: 1, y: 1}),
+        colHullX: new Jxl.Rect(),
+        colHullY: new Jxl.Rect(),
+        colVector: new Jxl.Point(),
+        colOffsets: [new Jxl.Point()],
+        _group: false  
     },
     refreshHulls: function() {
         var cx = this.colHullMinus.x,
@@ -489,7 +465,17 @@ Jxl.Object = new Class({
         this.exists = false;
         this.dead = true;
     },
-    render: function() {},
+    render: function() {
+        if(this.border.visible) {
+            this._point = this.getScreenXY(this._point);
+            this.renderBorder(); 
+        }
+    },
+    renderBorder: function(point) {
+        Jxl.buffer.strokeStyle = this.border.color;
+        Jxl.buffer.lineWidth = this.border.thickness;
+        Jxl.buffer.strokeRect(this._point.x-this.border.thickness, this._point.y-this.border.thickness, this.width+this.border.thickness, this.height+this.border.thickness);
+    },
     getScreenXY: function(point) {
         if(point == undefined) point = new Jxl.Point();
         point.x = Math.floor(this.x+Jxl.u.roundingError)+Math.floor(Jxl.scroll.x*this.scrollFactor.x);
@@ -497,42 +483,7 @@ Jxl.Object = new Class({
         return point;
     }
 });
-Jxl.Object.DEFAULTS = {
-    _point: new Jxl.Point(),
-    collideLeft: true,
-    collideRight: true,
-    collideTop: true,
-    collideBottom: true,
-    origin: new Jxl.Point(),
-    velocity: new Jxl.Point(),
-    acceleration: new Jxl.Point(),
-    _pZero: new Jxl.Point(),
-    drag: new Jxl.Point(),
-    maxVelocity: new Jxl.Point({x: 10000, y: 10000}),
-    angle: 0,
-    angularVelocity: 0,
-    angularDrag: 0,
-    angularAcceleration: 0,
-    maxAngular: 10000,
-    thrust: 0,
-    exists: true,
-    visible: true,
-    active: true,
-    solid: true,
-    fixed: false,
-    moves: true,
-    colHullMinus: new Jxl.Point(),
-    health: 1,
-    dead: false,
-    _flicker: false,
-    _flickerTimer: -1,
-    scrollFactor: new Jxl.Point({x: 1, y: 1}),
-    colHullX: new Jxl.Rect(),
-    colHullY: new Jxl.Rect(),
-    colVector: new Jxl.Point(),
-    colOffsets: [new Jxl.Point()],
-    _group: false
-};
+
 Jxl.Group = new Class({
     Extends: Jxl.Object,
     initialize: function(params) {
@@ -875,9 +826,14 @@ Jxl.Group.DEFAULTS = {
     _last: new Jxl.Point(),
     _first: true
 };Jxl.State = new Class({
-    initialize: function(params) {
-        Object.merge(this, Jxl.State.DEFAULTS, params);
-        this.create();
+    Implements: [Options],
+    initialize: function(options) {
+        this.setOptions(options);
+        Object.merge(this, this.options);
+	this.create();
+    },
+    options: {
+	defaultGroup: new Jxl.Group()
     },
     create: function() {
     
@@ -906,14 +862,10 @@ Jxl.Group.DEFAULTS = {
         this.defaultGroup.destroy();
     }
 });
-
-Jxl.State.DEFAULTS = {
-    defaultGroup: new Jxl.Group()
-}
 Jxl.Sprite = new Class({
     Extends: Jxl.Object,
-    initialize: function(params) {
-        this.parent(Object.merge({}, Jxl.Sprite.DEFAULTS, params));
+    initialize: function(options) {
+        this.parent(options);
         this.buffer = new Element('canvas', {
             width: this.width,
             height: this.height
@@ -922,6 +874,25 @@ Jxl.Sprite = new Class({
         this.bufferCTX.drawImage(this.graphic, 0, 0, this.width, this.height, 0, 0, this.width, this.height);
         this.resetHelpers();
         document.body.grab(this.buffer);
+    },
+    options: {
+	isSprite: true,
+	angle: 0,
+	_alpha: 1,
+	_color: 0x00ffffff,
+	_blend: null,
+	scale: new Jxl.Point({x: 1,y: 1}),
+	_facing: 1,
+	_animations: {},
+	_flipped: 0,
+	_curFrame: 0,
+	_frameTimer: 0,
+	finished: false,
+	_caf: 0,
+	offset: new Jxl.Point(),
+	_curAnim: null,
+	animated: false,
+	graphic: new Element('canvas')
     },
     play: function(name, force) {
         if(force == undefined) force = false;
@@ -953,6 +924,7 @@ Jxl.Sprite = new Class({
         if(this.animated) this.calcFrame();
         var rCan = this.buffer;
         this._point = this.getScreenXY(this._point);
+	if(this.border.visible || Jxl.showBB) this.renderBorder(this._point);
         /*
         if(this.angle !=0) {
             mod = 1.5;
@@ -1054,25 +1026,6 @@ Jxl.Sprite.LEFT = 0;
 Jxl.Sprite.RIGHT = 1;
 Jxl.Sprite.UP = 2;
 Jxl.Sprite.DOWN = 3;
-Jxl.Sprite.DEFAULTS = {
-    isSprite: true,
-    angle: 0,
-    _alpha: 1,
-    _color: 0x00ffffff,
-    _blend: null,
-    scale: new Jxl.Point({x: 1,y: 1}),
-    _facing: 1,
-    _animations: {},
-    _flipped: 0,
-    _curFrame: 0,
-    _frameTimer: 0,
-    finished: false,
-    _caf: 0,
-    offset: new Jxl.Point(),
-    _curAnim: null,
-    animated: false,
-    graphic: new Element('canvas')
-};
 
 
 Jxl.Anim = new Class({
@@ -1086,8 +1039,29 @@ Jxl.Anim = new Class({
     }
 });Jxl.TileMap = new Class({
     Extends: Jxl.Object,
-    initialize: function(params) {
-        this.parent(Object.merge({}, Jxl.TileMap.DEFAULTS, params));
+    initialize: function(options) {
+        this.parent(options);
+    },
+    options: {
+        auto: Jxl.TileMapOFF,
+        collideIndex: 1,
+        startingIndex: 0,
+        drawIndex: 1,
+        widthInTiles: 0,
+        heightInTiles: 0,
+        totalTiles: 0,
+        _buffer: null,
+        _bufferLoc: new Jxl.Point(),
+        _flashRect2: new Jxl.Rect(),
+        _flashRect: new Jxl.Rect(),
+        _data: null,
+        _tileWidth: 0,
+        _tileHeight: 0,
+        _rects: null,
+        _pixels: null,
+        _block: new Jxl.Object({width:0, height:0, fixed: true}),
+        _callbacks: new Array(),
+        fixed: true   
     },
     loadMap : function(MapData, TileGraphic, TileWidth, TileHeight) {
         var c, cols, rows = MapData.split("\n");
@@ -1108,7 +1082,7 @@ Jxl.Anim = new Class({
         //Pre-Process the map data if its auto-tiled
         var i;
         this.totalTiles = this.widthInTiles * this.heightInTiles;
-        if(this.auto > Jxl.TileMap.OFF)
+        if(this.auto > Jxl.TileMapOFF)
         {
             this.collideIndex = this.startingIndex = this.drawIndex = 1;
             i = 0;
@@ -1166,7 +1140,7 @@ Jxl.Anim = new Class({
             cri = ri;
             for(c = 0; c < this._screenCols; c++) {
                 var _flashRect = this._rects[cri++];
-                if(_flashRect != null)
+                if(_flashRect != null) 
                     Jxl.buffer.drawImage(this._pixels, _flashRect[0], _flashRect[1],
                             _flashRect[2], _flashRect[3], _flashPoint.x,
                             _flashPoint.y,  this._tileWidth, this._tileHeight);
@@ -1203,7 +1177,7 @@ Jxl.Anim = new Class({
         if((Index % this.widthInTiles <= 0) || (this._data[Index-1] > 0))									//LEFT
             this._data[Index] += 8;
             
-        if((this.auto == Jxl.TileMap.ALT) && (this._data[Index] == 15))	//The alternate algo checks for interior corners
+        if((this.auto == Jxl.TileMapALT) && (this._data[Index] == 15))	//The alternate algo checks for interior corners
         {
             if((Index % this.widthInTiles > 0) && (Index+this.widthInTiles < this.totalTiles) && (this._data[Index+this.widthInTiles-1] <= 0))
                 this._data[Index] = 1;		//BOTTOM LEFT OPEN
@@ -1263,6 +1237,13 @@ Jxl.Anim = new Class({
         }
         return false;
     },
+    renderTileBB: function(X, Y) {
+        if((X >= this.widthInTiles) || (Y >= this.heightInTiles))
+            return;
+        Jxl.buffer.strokeStyle = this.border.color;
+        Jxl.buffer.lineWidth = this.border.thickness;
+        Jxl.buffer.strokeRect(this._point.x-this.border.thickness+X*this.tileWidth, this._point.y-this.border.thickness+Y*this.tileHeight, this.tileWidth+this.border.thickness, this.tileHeight+this.border.thickness);
+    },
     setTile: function(X, Y, Tile, UpdateGraphics) {
         UpdateGraphics = (UpdateGraphics === undefined) ? true : UpdateGraphics;
         if((X >= this.widthInTiles) || (Y >= this.heightInTiles))
@@ -1282,7 +1263,7 @@ Jxl.Anim = new Class({
         
         this.refresh = true;
         
-        if(this.auto == FlxTilemap.OFF)
+        if(this.auto == Jxl.TilemapOFF)
         {
             this.updateTile(Index);
             return ok;
@@ -1437,9 +1418,9 @@ Jxl.Anim = new Class({
         return false;
     }
 });
-Jxl.TileMap.OFF =  0;
-Jxl.TileMap.AUTO =  1;
-Jxl.TileMap.ALT = 2;
+Jxl.TileMapOFF =  0;
+Jxl.TileMapAUTO =  1;
+Jxl.TileMapALT = 2;
 Jxl.TileMap.arrayToCSV = function(Data, Width) {
     var r = 0;
     var c;
@@ -1462,27 +1443,7 @@ Jxl.TileMap.arrayToCSV = function(Data, Width) {
     }
     return csv;
 }
-Jxl.TileMap.DEFAULTS = {
-    auto: Jxl.TileMap.OFF,
-    collideIndex: 1,
-    startingIndex: 0,
-    drawIndex: 1,
-    widthInTiles: 0,
-    heightInTiles: 0,
-    totalTiles: 0,
-    _buffer: null,
-    _bufferLoc: new Jxl.Point(),
-    _flashRect2: new Jxl.Rect(),
-    _flashRect: new Jxl.Rect(),
-    _data: null,
-    _tileWidth: 0,
-    _tileHeight: 0,
-    _rects: null,
-    _pixels: null,
-    _block: new Jxl.Object({width:0, height:0, fixed: true}),
-    _callbacks: new Array(),
-    fixed: true 
-};
+
 
        var AudioManager = new Class({
     initialize: function() {
@@ -2432,4 +2393,94 @@ Jxl.Util = new Class({
             Jxl.QuadTree.divisions = Divisions;
     }
 });
-Jxl.u = new Jxl.Util();
+Jxl.u = new Jxl.Util();Jxl.UI = {};
+Jxl.UI.Object = new Class({
+    Implements: [Options],
+    initialize: function(options) {
+        this.setOptions(options);
+        Object.merge(this, this.options);
+    },
+    rendered: false,
+    render: function(to) {
+        this.rendered = true;
+	var self = this;
+	this.html = new Element('div', this.attr);
+	Object.each(this.members, function(value, key) {
+	    self.html.grab(value.render().html.set('id', key));
+	});
+	if(to !== undefined) to.grab(this.html);
+	return this;
+    },
+    destroy: function() {
+        this.rendered = false;
+	this.html.dispose();
+    }
+});
+
+Jxl.UI.Dialog = new Class({
+    Extends: Jxl.UI.Object,
+    render: function(to) {
+	this.parent();
+	this.html.set('class', 'jxDialog');
+	if(this.modal === true) {
+	    this.html = new Element('div', {
+		'class': 'jxModal'
+	    }).grab(this.html);
+	}
+	if(to !== undefined) to.grab(this.html);
+	return this;
+    }
+});
+
+Jxl.UI.Button = new Class({
+    Extends: Jxl.UI.Object,
+    attr: {
+	class: 'jxButton'
+    }
+});
+
+Jxl.UI.pause = new Jxl.UI.Dialog({
+    attr: {
+	id: 'pauseMenu',
+	html: 'Jixel is Paused'
+    },
+    members: {
+	'unpause': new Jxl.UI.Button({
+	    attr: {
+		html: 'Resume!',
+		events: {
+		    click: function() {
+			Jxl.unpause();
+		    }
+		}
+	    }
+	})
+    },
+   modal: true
+});
+
+Jxl.UI.fps = new Jxl.UI.Object({
+    attr: {
+	styles: {
+	    fontWeight: 'bold',
+	    position:'fixed',
+	    top:'0px',
+	    right:'0px'
+	}
+    }
+});Jxl.Mouse = new Class({
+    Extends: Jxl.Object,
+    initialize: function() {
+        this.parent();
+        var self = this;
+        Jxl.canvas.addEvent('mousemove', function(e) {
+            self.x = e.event.x/Jxl.scale;
+            self.y = e.event.y/Jxl.scale;
+        });
+    },
+    options: {
+        scrollFactor: new Jxl.Point({x: 0, y: 0}),
+        width: 1,
+        height: 1
+    }
+});

@@ -1,17 +1,15 @@
 Jxl.UI = {};
 Jxl.UI.Object = new Class({
-    initialize: function(properties) {
-	this.members = Object.merge(this.members, properties.members);
-	properties.members = undefined;
-	this.properties = Object.merge(this.properties, properties);
+    Implements: [Options],
+    initialize: function(options) {
+        this.setOptions(options);
+        Object.merge(this, this.options);
     },
-    properties: {},
-    members: {},
     rendered: false,
     render: function(to) {
         this.rendered = true;
 	var self = this;
-	this.html = new Element('div', this.properties);
+	this.html = new Element('div', this.attr);
 	Object.each(this.members, function(value, key) {
 	    self.html.grab(value.render().html.set('id', key));
 	});
@@ -29,7 +27,7 @@ Jxl.UI.Dialog = new Class({
     render: function(to) {
 	this.parent();
 	this.html.set('class', 'jxDialog');
-	if(this.properties.modal === true) {
+	if(this.modal === true) {
 	    this.html = new Element('div', {
 		'class': 'jxModal'
 	    }).grab(this.html);
@@ -41,31 +39,38 @@ Jxl.UI.Dialog = new Class({
 
 Jxl.UI.Button = new Class({
     Extends: Jxl.UI.Object,
-    properties: {
+    attr: {
 	class: 'jxButton'
     }
 });
 
 Jxl.UI.pause = new Jxl.UI.Dialog({
-   id: 'pauseMenu',
-   html: 'Jixel is Paused',
-   members: {
+    attr: {
+	id: 'pauseMenu',
+	html: 'Jixel is Paused'
+    },
+    members: {
 	'unpause': new Jxl.UI.Button({
-	  html: 'Resume!' ,
-	  events: {
-	    click: function() {
-		Jxl.unpause();
+	    attr: {
+		html: 'Resume!',
+		events: {
+		    click: function() {
+			Jxl.unpause();
+		    }
+		}
 	    }
-	  }
 	})
-   },
+    },
    modal: true
 });
+
 Jxl.UI.fps = new Jxl.UI.Object({
-    styles: {
-        fontWeight: 'bold',
-        position:'fixed',
-        top:'0px',
-        right:'0px'
+    attr: {
+	styles: {
+	    fontWeight: 'bold',
+	    position:'fixed',
+	    top:'0px',
+	    right:'0px'
+	}
     }
 });
