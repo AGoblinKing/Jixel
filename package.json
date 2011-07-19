@@ -1,0 +1,9 @@
+{ 
+    "name": "jixel", 
+    "description": "A javascript port of Flixel",
+    "version": "1.0.0",
+    "dependencies": {
+        "connect": "1.6.0",
+        "uglify-js": "0.0.5"
+    }
+}
