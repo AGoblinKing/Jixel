@@ -1,16 +1,10 @@
-Jxl.State = new Class({
-    Implements: [Options],
-    initialize: function(options) {
-        this.setOptions(options);
-        Object.merge(this, this.options);
-	this.create();
+def('Jxl.State', {
+    init: function(options) {
+        _(this).extend(options);
+	    this.create();
     },
-    options: {
-	defaultGroup: new Jxl.Group()
-    },
-    create: function() {
-    
-    },
+	defaultGroup: new Jxl.Group(),
+    create: function() {},
     add: function(object) {
         return this.defaultGroup.add(object);
     },
@@ -20,17 +14,16 @@ Jxl.State = new Class({
     preProcess: function() {
         Jxl.buffer.clearRect(0,0, Jxl.screenWidth(), Jxl.screenHeight());
     },
-    update: function(delta) {
-        this.defaultGroup.update(delta);
+    update: function() {
+        this.defaultGroup.update();
     },
     collide: function() {
-        Jxl.u.collide(this.defaultGroup, this.defaultGroup);
+        Jxl.Util.collide(this.defaultGroup, this.defaultGroup);
     },
     render: function() {
         this.defaultGroup.render();
     },
-    postProcess: function() {
-    },
+    postProcess: function() {},
     destroy: function() {
         this.defaultGroup.destroy();
     }

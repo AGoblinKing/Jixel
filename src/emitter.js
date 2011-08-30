@@ -1,9 +1,8 @@
-
-var JxlParticle = new Class({
-    Extends: JxlSprite,
-    initialize: function(Bounce) {
-        this.parent();
-        this._bounce = Bounce;
+def('Jxl.Particle', {
+    extend: Jxl.Sprite,
+    init: function(config) {
+        this.prototype.supr.call(this);
+        this._bounce = config.bounce;
     },
     hitSide: function(Contact, Velocity) {
         this.velocity.x = -this.velocity.x * this._bounce;
@@ -24,11 +23,11 @@ var JxlParticle = new Class({
     }
 });
 
-var JxlEmitter = new Class({
-    Extends: JxlGroup,
-    initialize: function(X, Y) {
-        X = ( X == undefined) ? 0 : X;
-        Y = ( Y == undefined) ? 0 : Y;
+def('Jxl.Emitter', {
+    Extends: Jxl.Group,
+    initialize: function(config) {
+        X = ( config.x == undefined) ? 0 : config.x;
+        Y = ( config.y == undefined) ? 0 : config.y;
         this.parent();
         this.x = X;
         this.y = Y;
@@ -50,7 +49,7 @@ var JxlEmitter = new Class({
         this.justEmitted = false;
     },
     render: function(ctx, game) {
-        this.parent(ctx, game);  
+        this.prototype.supr.render(ctx, game);  
     },
     createSprites: function(Graphics, Quantity, Dimensions, Multiple, Collide, Bounce) {
         Quantity = ( Quantity == undefined) ? 50 : Quantity;

@@ -1,68 +1,28 @@
-/***
- * Consider this a singleton, just doing it this way so you could possibly override
- * Jixel and then instantiate Jxl.
- ***/
-var Jixel = new Class({
-    init: function(callback, width, height) {
+def('Jxl', {
+    singleton: true,
+    config: function(config) {
+        if(config === undefined) config = {};
         var self = this;
-        width = (width === undefined) ? 240 : width;
-        height = (height === undefined) ? 160 : height;
-        
-        window.addEvent('domready', function() {
-            self.state = new Jxl.State();
-            self.canvas = new Element('canvas');
-            self.buffer = self.canvas.getContext('2d');
-            self.scale = 1;
-            self.mouse = new Jxl.Mouse();
-            self.showBB = false;
-            self.autoPause = true;
-            self._width(width);
-            self._height(height);
-            self.refresh = 16;
-            self.running = false;
-            self.fullScreen = false;
-            self.keepResolution = false;
-            self.date = new Date();
-            self.keys = {};
-            self._showFPS = false;
-            self._scrollTarget = new Jxl.Point();
-            self.unfollow();
-            self.renderedFrames = 0;
-            Jxl.u.setWorldBounds(0,0,this.width, this.height);
-            /*** Input Overrides ***/
-            self.overrideElements = {'INPUT':'','TEXTAREA':''};
-            /*** Setup Events ***/
-            window.addEvents({
-                blur: function() {
-                    if(self.autoPause) self.pause();
-                },
-                resize: function() {
-                    if(self.fullScreen) {
-                        if(!self.keepResolution) {
-                            self.bufferCanvas.width = self.width = window.get('width');
-                            self.bufferCanvas.height = self.height = window.get('height');
-                        }
-                        self.canvas.width = window.get('width');
-                        self.canvas.height = window.get('height');
-                    }
-                }
-            });
-            self.canvas.addEvent('click', function(e) {
-                self.click(e);   
-            });
-            document.addEvents({
-                'keyup': function(e) {
-                    delete self.keys[e.key.toUpperCase()];
-                },
-                'keydown': function(e) {
-                    self.keys[e.key.toUpperCase()] = true;
-                    if(self.overrideElements[document.activeElement.tagName] == undefined) {
-                        return false;
-                    }
-                }
-            });
-            callback();
-        });
+        width = (config.width === undefined) ? 240 : config.width;
+        height = (config.height === undefined) ? 160 : config.height;
+        self.state = new Jxl.State();
+        self.canvas = (config.canvas !== undefined) ? config.canvas : new Element('canvas');
+        self.buffer = self.canvas.getContext('2d');
+        self.scale = 1;
+        self.showBB = false;
+        self.autoPause = true;
+        self._width(width);
+        self.mouse = new Jxl.Mouse();
+        self._height(height);
+        self.refresh = 16;
+        self.running = false;
+        self.fullScreen = false;
+        self.keepResolution = false;
+        self.date = new Date();
+        self._scrollTarget = new Jxl.Point();
+        self.unfollow();
+        self.renderedFrames = 0;
+        Jxl.Util.setWorldBounds(0,0,this.width, this.height);
     },
     toggleFPS: function() {
         if(!this._showFPS) {
@@ -121,18 +81,6 @@ var Jixel = new Class({
         else
             this._scrollTarget.x = this._scrollTarget.y = 0;
     },
-    showFPS: function() {
-        if(!this._showFPS) {
-            this._showFPS = true;
-            this.UI.fps.render(document.body);
-        }
-    },
-    hideFPS: function() {
-        if(this._showFPS) {
-            this._showFPS = false;
-            this.UI.fps.destroy();
-        }
-    },
     _width: function(width) {
         if(width != undefined) {
             this.screenWidth(width*this.scale);
@@ -174,7 +122,6 @@ var Jixel = new Class({
         return this.canvas.height;
     },
     start: function() {
-        document.body.grab(this.canvas);
         var self = this;
         self.date = new Date();
         this.lastUpdate = this.date.getTime();
@@ -195,25 +142,11 @@ var Jixel = new Class({
         this.scale = scale;
         this._width(this.width);
         this._height(this.height);
-        this.am.reload();
-    },
-    updateFPS: function(delta) {
-        if(this.showFPS) {
-            if(!this.UI.fps.rendered) this.UI.fps.render(document.body);
-            this.renderedFrames++;
-            this.timeSpent += delta;
-            if(this.timeSpent >= 1) {
-                    this.avgFPS = this.renderedFrames;
-                    this.timeSpent = 0
-                    this.renderedFrames = 0;
-            }
-            this.UI.fps.html.set('text',"(Cur): "+Math.floor(1/delta));
-        }
     },
     update: function(delta) {
-        this.doFollow(delta);
-        this.updateFPS(delta);
-        this.state.update(delta);
+        this.delta = delta;
+        this.doFollow();
+        this.state.update();
         this.state.preProcess();
         this.state.render();
         this.mouse.render();
@@ -221,5 +154,3 @@ var Jixel = new Class({
     },
     click: function() {}
 });
-
-var Jxl = new Jixel();

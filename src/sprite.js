@@ -1,17 +1,17 @@
-Jxl.Sprite = new Class({
-    Extends: Jxl.Object,
-    initialize: function(options) {
-        this.parent(options);
-        this.buffer = new Element('canvas', {
-            width: this.width,
-            height: this.height
-        });
+def('Jxl.Sprite', {
+    extend: Jxl.Object,
+    init: function(config) {
+        var self = this;
+        console.log(config);
+        Jxl.Object.prototype.init.call(this, config);
+        this.buffer = document.createElement('canvas');
+        this.buffer.width = this.width;
+        this.buffer.height = this.height;
+        if(this.graphic == undefined) this.graphic = document.createElement('canvas');
         this.bufferCTX = this.buffer.getContext('2d');
-        this.bufferCTX.drawImage(this.graphic, 0, 0, this.width, this.height, 0, 0, this.width, this.height);
+        this.bufferCTX.drawImage(this.graphic, 0, 0, this.width, this.height, 0, 0, this.width, this.height); 
         this.resetHelpers();
-        document.body.grab(this.buffer);
     },
-    options: {
 	isSprite: true,
 	angle: 0,
 	_alpha: 1,
@@ -28,8 +28,6 @@ Jxl.Sprite = new Class({
 	offset: new Jxl.Point(),
 	_curAnim: null,
 	animated: false,
-	graphic: new Element('canvas')
-    },
     play: function(name, force) {
         if(force == undefined) force = false;
         if(!force && this._curAnim != null && name == this._curAnim.name) return;
@@ -60,32 +58,13 @@ Jxl.Sprite = new Class({
         if(this.animated) this.calcFrame();
         var rCan = this.buffer;
         this._point = this.getScreenXY(this._point);
-	if(this.border.visible || Jxl.showBB) this.renderBorder(this._point);
-        /*
-        if(this.angle !=0) {
-            mod = 1.5;
-            var key = this.angle+':'+this._curFrame;
-            if(this.graphic.rotations == undefined) this.graphic.rotations = {};
-            if(this.graphic.rotations[key] == undefined) {
-                rCan = new Element('canvas');
-                rCan.width = this.graphic.width*1.5;
-                rCan.height = this.graphic.height*1.5;
-                var rCTX = rCan.getContext('2d');
-                rCTX.translate(rCan.width/2,rCan.height/2);
-                rCTX.rotate(this.angle*Math.PI/180);
-                rCTX.drawImage(this.graphic.scaled, -this.graphic.scaled.width/2,-this.graphic.scaled.height/2,this.graphic.scaled.width,this.graphic.scaled.height);
-                this.graphic.rotations[key] = rCan;
-            } else {
-                rCan = this.graphic.rotations[key];
-            }
-        }
-        */
+	    if(this.border.visible || Jxl.showBB) this.renderBorder(this._point);
         Jxl.buffer.drawImage(rCan, 0,0, this.width, this.height, this._point.x, this._point.y, this.width, this.height);    
     },
     onEmit: function() {},
-    updateAnimation: function(delta) {
+    updateAnimation: function() {
         if((this._curAnim != null) && (this._curAnim.delay > 0) && (this._curAnim.looped || !this.finished )) {
-            this._frameTimer += delta;
+            this._frameTimer += Jxl.delta;
             if(this._frameTimer > this._curAnim.delay) {
                 this._frameTimer -= this._curAnim.delay;
                 if(this._caf == this._curAnim.frames.length-1) {
@@ -107,23 +86,23 @@ Jxl.Sprite = new Class({
             looped = true;
         this._animations[name] = new Jxl.Anim(name, frames, frameRate, looped);
     },
-    update: function(game, time) {
-        this.updateMotion(game, time);
-        this.updateAnimation(game, time);
-        this.updateFlickering(game, time);
+    update: function() {
+        this.updateMotion();
+        this.updateAnimation();
+        this.updateFlickering();
     },
     getScreenXY: function(point) {
         if(point == undefined) point = new Jxl.Point();
-        point.x = Math.floor(this.x+Jxl.u.roundingError)+Math.floor(Jxl.scroll.x*this.scrollFactor.x) - this.offset.x;
-        point.y = Math.floor(this.y+Jxl.u.roundingError)+Math.floor(Jxl.scroll.y*this.scrollFactor.y) - this.offset.y;
+        point.x = Math.floor(this.x+Jxl.Util.roundingError)+Math.floor(Jxl.scroll.x*this.scrollFactor.x) - this.offset.x;
+        point.y = Math.floor(this.y+Jxl.Util.roundingError)+Math.floor(Jxl.scroll.y*this.scrollFactor.y) - this.offset.y;
         return point;
     },
     overlapsPoint: function(game, x, y, perPixel) {
         if(perPixel == undefined) perPixel = false;
         
-        x -= Math.floor(game.scroll.x);
-        y -= Math.floor(game.scroll.y);
-        this._point = this.getScreenXY(game, this._point);
+        x -= Math.floor(Jxl.scroll.x);
+        y -= Math.floor(Jxl.scroll.y);
+        this._point = this.getScreenXY(this._point);
     
         if((x <= this._point.x) || (x >= this._point.x+this.width) || (y <= this._point.y) || (y >= this._point.y+this.height))
             return false;
@@ -151,8 +130,8 @@ Jxl.Sprite = new Class({
         this.graphic = document.createElement('canvas');
         var ctx = this.graphic.getContext('2d');
         this.width = this.graphic.width = this.frameWidth = Width;
-	this.height = this.graphic.height = this.frameHeight = Height;
-        ctx.fillStyle = Jxl.u.makeRGBA(Color);
+	    this.height = this.graphic.height = this.frameHeight = Height;
+        ctx.fillStyle = Jxl.Util.makeRGBA(Color);
         ctx.fillRect(0, 0, Width, Height);
         this.resetHelpers();
         return this;
@@ -164,8 +143,8 @@ Jxl.Sprite.UP = 2;
 Jxl.Sprite.DOWN = 3;
 
 
-Jxl.Anim = new Class({
-    initialize: function(name, frames, frameRate, looped){
+def('Jxl.Anim', {
+    init: function(name, frames, frameRate, looped){
         this.name = name;
         this.delay = 0;
         if(frameRate > 0)

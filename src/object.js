@@ -2,29 +2,23 @@
 /***
  * Represents a single point in space
  ***/
-Jxl.Point = new Class({
-    Implements: [Options],
-    initialize: function(options) {
-        this.setOptions(options);
-        Object.merge(this, this.options);
+def('Jxl.Point', {
+    init: function(options) {
+        _(this).extend(options);
     },
-    options: {
-        x: 0,
-        y: 0
-    }
+    x: 0,
+    y: 0
 });
 /***
  * Represents a Rectangle
  ***/
-Jxl.Rect = new Class({
-    Extends: Jxl.Point,
-    initialize: function(params) {
-        this.parent(params);
+def('Jxl.Rect', {
+    extend: Jxl.Point,
+    init: function(params) {
+        Jxl.Point.prototype.init.call(this, params);
     },
-    options: {
-        width: 0,
-        height: 0
-    },
+    width: 0,
+    height: 0,
     left: function() {
         return this.x;
     },
@@ -41,52 +35,50 @@ Jxl.Rect = new Class({
 /***
  * Base Game Object.
  ***/
-Jxl.Object = new Class({
-    Extends: Jxl.Rect,
-    initialize: function(options) {
-        this.parent(options);
+def('Jxl.Object', {
+    extend: Jxl.Rect,
+    init: function(options) {
+       Jxl.Rect.prototype.init.call(this, options);
     },
-    options: {
-        _point: new Jxl.Point(),
-        collideLeft: true,
-        collideRight: true,
-        collideTop: true,
-        collideBottom: true,
-        origin: new Jxl.Point(),
-        velocity: new Jxl.Point(),
-        acceleration: new Jxl.Point(),
-        _pZero: new Jxl.Point(),
-        drag: new Jxl.Point(),
-        maxVelocity: new Jxl.Point({x: 10000, y: 10000}),
-        angle: 0,
-        angularVelocity: 0,
-        angularDrag: 0,
-        angularAcceleration: 0,
-        maxAngular: 10000,
-        thrust: 0,
-        exists: true,
-        visible: true,
-        border: {
-            visible: false,
-            thickness: 2,
-            color: new Color('#f00')
-        },
-        active: true,
-        solid: true,
-        fixed: false,
-        moves: true,
-        colHullMinus: new Jxl.Point(),
-        health: 1,
-        dead: false,
-        _flicker: false,
-        _flickerTimer: -1,
-        scrollFactor: new Jxl.Point({x: 1, y: 1}),
-        colHullX: new Jxl.Rect(),
-        colHullY: new Jxl.Rect(),
-        colVector: new Jxl.Point(),
-        colOffsets: [new Jxl.Point()],
-        _group: false  
+    _point: new Jxl.Point(),
+    collideLeft: true,
+    collideRight: true,
+    collideTop: true,
+    collideBottom: true,
+    origin: new Jxl.Point(),
+    velocity: new Jxl.Point(),
+    acceleration: new Jxl.Point(),
+    _pZero: new Jxl.Point(),
+    drag: new Jxl.Point(),
+    maxVelocity: new Jxl.Point({x: 10000, y: 10000}),
+    angle: 0,
+    angularVelocity: 0,
+    angularDrag: 0,
+    angularAcceleration: 0,
+    maxAngular: 10000,
+    thrust: 0,
+    exists: true,
+    visible: true,
+    border: {
+        visible: false,
+        thickness: 2,
+        color: '#f00'
     },
+    active: true,
+    solid: true,
+    fixed: false,
+    moves: true,
+    colHullMinus: new Jxl.Point(),
+    health: 1,
+    dead: false,
+    _flicker: false,
+    _flickerTimer: -1,
+    scrollFactor: new Jxl.Point({x: 1, y: 1}),
+    colHullX: new Jxl.Rect(),
+    colHullY: new Jxl.Rect(),
+    colVector: new Jxl.Point(),
+    colOffsets: [new Jxl.Point()],
+    _group: false,
     refreshHulls: function() {
         var cx = this.colHullMinus.x,
             cy = this.colHullMinus.y;
@@ -103,15 +95,15 @@ Jxl.Object = new Class({
         if(!this.moves) return;
         if(this.solid) this.refreshHulls();
         this.onFloor = false;
-        var vc = (Jxl.u.computeVelocity(delta, this.angularVelocity, this.angularAcceleration, this.angularDrag, this.maxAngular) - this.angularVelocity)/2;
+        var vc = (Jxl.Util.computeVelocity(delta, this.angularVelocity, this.angularAcceleration, this.angularDrag, this.maxAngular) - this.angularVelocity)/2;
         this.angularVelocity += vc;
         this.angle += this.angularVelocity*delta;
         this.angularVelocity += vc;
         
         var thrustComponents;
         if(this.thrust != 0 ) {
-            thrustComponents = Jxl.u.rotatePoint(-this.thrust, 0, 0, 0,this.angle);
-            var maxComponents = Jxl.u.rotatePoint(-this.maxThrust, 0, 0, 0, this.angle);
+            thrustComponents = Jxl.Util.rotatePoint(-this.thrust, 0, 0, 0,this.angle);
+            var maxComponents = Jxl.Util.rotatePoint(-this.maxThrust, 0, 0, 0, this.angle);
             var max = Math.abs(maxComponents.x);
             if(max > Math.abs(maxComponents.y)) maxComponents.y = max;
             else max = Math.abs(maxComponents.y);
@@ -120,14 +112,14 @@ Jxl.Object = new Class({
             thrustComponents = this._pZero;
         }
         
-        vc = (Jxl.u.computeVelocity(delta, this.velocity.x, this.acceleration.x+thrustComponents.x,this.drag.x, this.maxVelocity.x) - this.velocity.x)/2;
+        vc = (Jxl.Util.computeVelocity(delta, this.velocity.x, this.acceleration.x+thrustComponents.x,this.drag.x, this.maxVelocity.x) - this.velocity.x)/2;
         this.velocity.x += vc;
-        var xd = this.velocity.x * delta;
+        var xd = this.velocity.x * Jxl.delta;
         this.velocity.x += vc;
         
-        vc = (Jxl.u.computeVelocity(delta, this.velocity.y, this.acceleration.y+thrustComponents.y, this.drag.y, this.maxVelocity.y) - this.velocity.y)/2;
+        vc = (Jxl.Util.computeVelocity(delta, this.velocity.y, this.acceleration.y+thrustComponents.y, this.drag.y, this.maxVelocity.y) - this.velocity.y)/2;
         this.velocity.y += vc;
-        var yd = this.velocity.y * delta;
+        var yd = this.velocity.y * Jxl.delta;
         this.velocity.y += vc;
         
         this.x += xd;
@@ -143,10 +135,10 @@ Jxl.Object = new Class({
         this.colHullY.height += Math.abs(this.colVector.y);
         if(this.colVector.y < 0) this.colHullY.y += this.colVector.y;
     },
-    updateFlickering: function(delta) {
+    updateFlickering: function() {
         if(this.flickering()) {
             if(this._flickerTimer > 0) {
-                this._flickerTimer -= delta;
+                this._flickerTimer -= Jxl.delta;
                 if(this._flickerTimer == 0) this._flickerTimer = -1;
             }
             if(this._flickerTimer < 0) this.flicker(-1);
@@ -156,9 +148,9 @@ Jxl.Object = new Class({
             }
         }
     },
-    update: function(delta) {
-        this.updateMotion(delta);
-        this.updateFlickering(delta);
+    update: function() {
+        this.updateMotion();
+        this.updateFlickering();
     },
     flicker: function(duration) {
         if(duration == undefined) duration = 1;
@@ -202,19 +194,19 @@ Jxl.Object = new Class({
             return false;
         return true; 
     },
-    overlapsPoint: function(game, x, y, perPixel) {
+    overlapsPoint: function(x, y, perPixel) {
         if(perPixel == undefined) perPixel = false;
         
-        x += Math.floor(game.scroll.x);
-        y += Math.floor(game.scroll.y);
-        this._point = this.getScreenXY(game, this._point);
+        x += Math.floor(Jxl.scroll.x);
+        y += Math.floor(Jxl.scroll.y);
+        this._point = this.getScreenXY(this._point);
         if((x <= this._point.x) || (x >= this._point.x+this.width) || (y <= this._point.y) || (y >= this._point.y+this.height))
             return false;
         return true;
     },
     collide: function(object) {
         if(object == undefined) object = this;
-        return Jxl.u.collide(this, object);
+        return Jxl.Util.collide(this, object);
     },
     preCollide: function(object) {},
     hitLeft: function(contact, velocity) {
@@ -253,8 +245,8 @@ Jxl.Object = new Class({
     },
     getScreenXY: function(point) {
         if(point == undefined) point = new Jxl.Point();
-        point.x = Math.floor(this.x+Jxl.u.roundingError)+Math.floor(Jxl.scroll.x*this.scrollFactor.x);
-        point.y = Math.floor(this.y+Jxl.u.roundingError)+Math.floor(Jxl.scroll.y*this.scrollFactor.y);
+        point.x = Math.floor(this.x+Jxl.Util.roundingError)+Math.floor(Jxl.scroll.x*this.scrollFactor.x);
+        point.y = Math.floor(this.y+Jxl.Util.roundingError)+Math.floor(Jxl.scroll.y*this.scrollFactor.y);
         return point;
     }
 });

@@ -1,5 +1,5 @@
-var AudioManager = new Class({
-    initialize: function() {
+def('Jxl.Audio', {
+    init: function() {
         this.sounds = {};
         this.channels = [];
         for(var i=0;i<16;i++) {
@@ -64,5 +64,3 @@ var AudioManager = new Class({
         this.sounds[name] = audio;
     }
 });
-
-Jxl.audio = new AudioManager();

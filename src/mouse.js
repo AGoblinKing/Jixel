@@ -1,16 +1,17 @@
-Jxl.Mouse = new Class({
-    Extends: Jxl.Object,
-    initialize: function() {
-        this.parent();
+def('Jxl.Mouse', {
+    extend: Jxl.Object,
+    init: function() {
+        Jxl.Object.prototype.init.call(this);
         var self = this;
-        Jxl.canvas.addEvent('mousemove', function(e) {
-            self.x = e.event.x/Jxl.scale;
-            self.y = e.event.y/Jxl.scale;
-        });
+        Jxl.canvas.onmousemove = function(e) {
+            self.x = e.x/Jxl.scale;
+            self.y = e.y/Jxl.scale;
+        };
+        Jxl.canvas.onclick = function(e) {
+            
+        };
     },
-    options: {
-        scrollFactor: new Jxl.Point({x: 0, y: 0}),
-        width: 1,
-        height: 1
-    }
+    scrollFactor: new Jxl.Point({x: 0, y: 0}),
+    width: 1,
+    height: 1
 });
