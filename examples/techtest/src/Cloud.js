@@ -10,6 +10,5 @@ def('Cloud', {
             fixed: true
         };
         Jxl.Sprite.prototype.init.call(this, defaults);
-        document.body.appendChild(this.buffer);
     }
 });

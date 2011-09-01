@@ -1360,7 +1360,6 @@ def('Jxl.AssetManager', {
                    ct++;
                    if(callback != undefined && ct >= ln) callback();
                    if(progress)progress(ct, ln);
-                   console.log([key, ct])
                 });
                 ln++;
             });
@@ -1369,7 +1368,6 @@ def('Jxl.AssetManager', {
             _(assets.sounds).each(function(val, key) {
                 self.loadAsset('sound', key, val, function(asset) {
                    ct++;
-                   console.log([key, ct]);
                    if(callback != undefined && ct >= ln) callback();
                    if(progress)progress(ct, ln);
                 });
@@ -1395,8 +1393,8 @@ def('Jxl.AssetManager', {
             break;
         case 'image':
             var temp = document.createElement('img');
+            temp.src = src;
             temp.addEventListener('load', function() {
-                            console.log(src);
                 var can = document.createElement('canvas');
                 can.width = this.width;
                 can.height = this.height;
@@ -1405,7 +1403,7 @@ def('Jxl.AssetManager', {
                 self.assets[name] = can;
                 if(callback) callback(can);
             }, true);
-            temp.src = src;
+
         break;
       }
     }

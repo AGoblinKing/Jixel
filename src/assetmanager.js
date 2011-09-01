@@ -28,7 +28,6 @@ def('Jxl.AssetManager', {
                    ct++;
                    if(callback != undefined && ct >= ln) callback();
                    if(progress)progress(ct, ln);
-                   console.log([key, ct])
                 });
                 ln++;
             });
@@ -37,7 +36,6 @@ def('Jxl.AssetManager', {
             _(assets.sounds).each(function(val, key) {
                 self.loadAsset('sound', key, val, function(asset) {
                    ct++;
-                   console.log([key, ct]);
                    if(callback != undefined && ct >= ln) callback();
                    if(progress)progress(ct, ln);
                 });
