@@ -9,7 +9,7 @@ def('Jxl.List', {
 def('Jxl.QuadTree', {
     extend: Jxl.Rect,
     init: function(x, y, width, height, parent) {
-        this.supr.call(this, x, y, width, height);
+        Jxl.Rect.prototype.init.call(this, x, y, width, height);
         this._headA = this._tailA = new Jxl.List();
         this._headB = this._tailB = new Jxl.List();
 
@@ -633,7 +633,7 @@ def('Jxl.Util', {
 
         if (acceleration != 0) velocity += acceleration * Jxl.delta;
         else if (drag != 0) {
-            var d = drag * time;
+            var d = drag * Jxl.delta;
             if (velocity - d > 0) velocity -= d;
             else if (velocity + d < 0) velocity += d;
             else velocity = 0;

@@ -8,11 +8,21 @@ def('Jxl.Mouse', {
             self.y = e.y/Jxl.scale;
         }, true);
         Jxl.canvas.addEventListener('click', function(e) {
-            //collide with objects and tell them they were clicked
+            //collide with objects.. set special flag about type of click
             console.log([self.x, self.y]);
         }, true);
+        Jxl.canvas.addEventListener('contextmenu', function(e){
+            console.log([self.x, self.y]);
+            if(e.preventDefault)
+                e.preventDefault();
+            else
+                e.returnValue= false;
+            return false;
+        }, true);
+        _(this).extend({
+            scrollFactor: new Jxl.Point({x: 0, y: 0}),
+        });
     },
-    scrollFactor: new Jxl.Point({x: 0, y: 0}),
     width: 1,
     height: 1
 });

@@ -4,10 +4,15 @@
  ***/
 def('Jxl.Point', {
     init: function(params) {
-        _(this).extend(params);
+        _(this).extend({
+            x: 0,
+            y: 0
+        });
+        this.applyParams(params);
     },
-    x: 0,
-    y: 0
+    applyParams: function(params) {
+        if(params)_(this).extend(params);
+    }
 });
 /***
  * Represents a Rectangle
@@ -16,9 +21,12 @@ def('Jxl.Rect', {
     extend: Jxl.Point,
     init: function(params) {
         Jxl.Point.prototype.init.call(this, params);
+        _(this).extend({
+            width: 0,
+            height: 0
+        });
+        this.applyParams(params);
     },
-    width: 0,
-    height: 0,
     left: function() {
         return this.x;
     },
@@ -39,46 +47,49 @@ def('Jxl.Object', {
     extend: Jxl.Rect,
     init: function(params) {
        Jxl.Rect.prototype.init.call(this, params);
+       _(this).extend({
+            _point: new Jxl.Point(),
+            origin: new Jxl.Point(),
+            velocity: new Jxl.Point(),
+            acceleration: new Jxl.Point(),
+            _pZero: new Jxl.Point(),
+            drag: new Jxl.Point(),
+            maxVelocity: new Jxl.Point({x: 10000, y: 10000}),
+            scrollFactor: new Jxl.Point({x: 1, y: 1}),
+            colHullX: new Jxl.Rect(),
+            colHullY: new Jxl.Rect(),
+            colVector: new Jxl.Point(),
+            colOffsets: [new Jxl.Point()],
+            colHullMinus: new Jxl.Point(),
+            border: {
+                visible: false,
+                thickness: 2,
+                color: '#f00'
+            },
+            collideLeft: true,
+            collideRight: true,
+            collideTop: true,
+            collideBottom: true,
+            angle: 0,
+            angularVelocity: 0,
+            angularDrag: 0,
+            angularAcceleration: 0,
+            maxAngular: 10000,
+            thrust: 0,
+            exists: true,
+            visible: true,
+            active: true,
+            solid: true,
+            fixed: false,
+            moves: true,
+            health: 1,
+            dead: false,
+            _flicker: false,
+            _flickerTimer: -1,
+            _group: false
+       });
+       this.applyParams(params);
     },
-    _point: new Jxl.Point(),
-    collideLeft: true,
-    collideRight: true,
-    collideTop: true,
-    collideBottom: true,
-    origin: new Jxl.Point(),
-    velocity: new Jxl.Point(),
-    acceleration: new Jxl.Point(),
-    _pZero: new Jxl.Point(),
-    drag: new Jxl.Point(),
-    maxVelocity: new Jxl.Point({x: 10000, y: 10000}),
-    angle: 0,
-    angularVelocity: 0,
-    angularDrag: 0,
-    angularAcceleration: 0,
-    maxAngular: 10000,
-    thrust: 0,
-    exists: true,
-    visible: true,
-    border: {
-        visible: false,
-        thickness: 2,
-        color: '#f00'
-    },
-    active: true,
-    solid: true,
-    fixed: false,
-    moves: true,
-    colHullMinus: new Jxl.Point(),
-    health: 1,
-    dead: false,
-    _flicker: false,
-    _flickerTimer: -1,
-    scrollFactor: new Jxl.Point({x: 1, y: 1}),
-    colHullX: new Jxl.Rect(),
-    colHullY: new Jxl.Rect(),
-    colVector: new Jxl.Point(),
-    colOffsets: [new Jxl.Point()],
-    _group: false,
     refreshHulls: function() {
         var cx = this.colHullMinus.x,
             cy = this.colHullMinus.y;
@@ -95,7 +106,7 @@ def('Jxl.Object', {
         if(!this.moves) return;
         if(this.solid) this.refreshHulls();
         this.onFloor = false;
-        var vc = (Jxl.Util.computeVelocity(Jxl.delta, this.angularVelocity, this.angularAcceleration, this.angularDrag, this.maxAngular) - this.angularVelocity)/2;
+        var vc = (Jxl.Util.computeVelocity(this.angularVelocity, this.angularAcceleration, this.angularDrag, this.maxAngular) - this.angularVelocity)/2;
         this.angularVelocity += vc;
         this.angle += this.angularVelocity*Jxl.delta;
         this.angularVelocity += vc;

@@ -4,25 +4,30 @@ def('Jxl.Keyboard', {
         window.addEventListener('keydown', function(e) {
             self.keys[String.fromCharCode(e.keyCode)] = true;
             self.keys[e.keyCode] = true;
-        }, true);
-        window.addEventListener('keypress', function(e) {
-            self.pressed[String.fromCharCode(e.keyCode)] = true;
-            self.pressed[e.keyCode] = true;
+            if(!(e.keyCode in self.pressed)) {
+                self.pressed[String.fromCharCode(e.keyCode)] = true;
+                self.pressed[e.keyCode] = true;
+            }   
         }, true);
         window.addEventListener('keyup', function(e) {
             delete self.keys[e.keyCode];
             delete self.keys[String.fromCharCode(e.keyCode)];
+            delete self.pressed[String.fromCharCode(e.keyCode)];
+            delete self.pressed[e.keyCode];
         }, true);
     },
     pressed: {},
     keys: {},
     on: function(key) {
-        return key in this.keys;
+        return this.keys[key];
     },
     press: function(key) {
-        return key in this.pressed;
+        return this.pressed[key];
     },
     update: function() {
-        this.pressed = {};
+        var self = this;
+        _(this.pressed).each(function(val, key) {
+            self.pressed[key] = false; 
+        });
     }
 });

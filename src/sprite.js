@@ -3,6 +3,27 @@ def('Jxl.Sprite', {
     init: function(params) {
         var self = this;
         Jxl.Object.prototype.init.call(this, params);
+        _(this).extend({
+            isSprite: true,
+            width: 32,
+            height: 32,
+            angle: 0,
+            _alpha: 1,
+        	_color: 0x00ffffff,
+        	_blend: null,
+        	_facing: 1,
+        	_animations: {},
+        	_flipped: 0,
+        	_curFrame: 0,
+        	_frameTimer: 0,
+        	finished: false,
+        	_caf: 0,
+            scale: new Jxl.Point({x: 1,y: 1}),
+            offset: new Jxl.Point(),
+        	_curAnim: null,
+        	animated: false
+        });
+        this.applyParams(params);
         this.buffer = document.createElement('canvas');
         this.buffer.width = this.width;
         this.buffer.height = this.height;
@@ -11,24 +32,6 @@ def('Jxl.Sprite', {
         this.bufferCTX.drawImage(this.graphic, 0, 0, this.width, this.height, 0, 0, this.width, this.height); 
         this.resetHelpers();
     },
-	isSprite: true,
-    width: 32,
-    height: 32,
-	angle: 0,
-	_alpha: 1,
-	_color: 0x00ffffff,
-	_blend: null,
-	scale: new Jxl.Point({x: 1,y: 1}),
-	_facing: 1,
-	_animations: {},
-	_flipped: 0,
-	_curFrame: 0,
-	_frameTimer: 0,
-	finished: false,
-	_caf: 0,
-	offset: new Jxl.Point(),
-	_curAnim: null,
-	animated: false,
     play: function(name, force) {
         this.animated = true;
         if(force == undefined) force = false;
@@ -43,6 +46,7 @@ def('Jxl.Sprite', {
         this.bufferCTX.translate(-this.width, 0); 
     },
     calcFrame: function() {
+        this.buffer.width = this.width
         this.bufferCTX.clearRect(0, 0, this.width, this.height);
         var rx = this._curFrame * this.width;
         var ry = 0;
@@ -56,7 +60,6 @@ def('Jxl.Sprite', {
     // Rotations are stored on the fly instead of prebaked since they are cheaper here than in flixel.
     render: function(){
         if(!this.visible) return;
-        this.buffer.width = this.width; //dirty hack to reset the canvas
         if(this.animated) this.calcFrame();
         var rCan = this.buffer;
         this._point = this.getScreenXY(this._point);

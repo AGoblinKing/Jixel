@@ -5,9 +5,10 @@ def('Jxl', {
         var self = this;
         width = (config.width === undefined) ? 240 : config.width;
         height = (config.height === undefined) ? 160 : config.height;
-        self.canvas = (config.canvas !== undefined) ? config.canvas : new Element('canvas');
+        self.canvas = (config.canvas !== undefined) ? config.canvas : document.createElement('canvas');
         self.buffer = self.canvas.getContext('2d');
-        self.scale = 1;
+        self.scale = (config.scale === undefined) ? 1 : config.scale;
+        self.setScale(self.scale);
         self.showBB = false;
         self._width(width);
         self.state = new Jxl.State();
@@ -80,13 +81,13 @@ def('Jxl', {
     _width: function(width) {
         if(width != undefined) {
             this.screenWidth(width*this.scale);
-            this.width = width;
+            this.width = Math.floor(width);
         }
     },
     _height: function(height) {
         if(height != undefined) {
             this.screenHeight(height*this.scale);
-            this.height = height;
+            this.height = Math.floor(height);
         }
     },
     unpause: function() {
@@ -134,7 +135,7 @@ def('Jxl', {
             }, this.refresh);
         }
     },
-    changeScale: function(scale) {
+    setScale: function(scale) {
         this.scale = scale;
         this._width(this.width);
         this._height(this.height);

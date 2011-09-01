@@ -6,9 +6,12 @@ def('Cat', {
         this.addAnimation('idle', [48,49,50,49], .50);
         this.play('idle');
         this.speed = -80;
-        this.drag = new Jxl.Point({x:150,y:150});
+        this.drag = new Jxl.Point({x:150,y:0});
+        _(this).extend({
+            delta: 0
+        });
+        this.acceleration.y = 100;
     },
-    delta: 0,
     update: function() {
         if (Jxl.keys.on('A')) {
              this.velocity.x = this.speed;
@@ -21,10 +24,10 @@ def('Cat', {
         } else {
              this.play('idle');
         }
-        if(Jxl.keys.on(32) && this.delta > .5) {
-            this.delta = 0;
+        if(Jxl.keys.press(32)) {
+            this.velocity.y = -100;
             Jxl.audio.play('jump');
-        }
+        } 
         this.delta += Jxl.delta;
         Jxl.Sprite.prototype.update.call(this);
     }

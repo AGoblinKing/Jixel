@@ -1,8 +1,8 @@
 def('Jxl.Particle', {
     extend: Jxl.Sprite,
-    init: function(config) {
-        this.prototype.supr.call(this);
-        this._bounce = config.bounce;
+    init: function(options) {
+        Jxl.Sprite.prototype.init.call(this, options);
+        this._bounce = options.bounce;
     },
     hitSide: function(Contact, Velocity) {
         this.velocity.x = -this.velocity.x * this._bounce;
@@ -24,11 +24,11 @@ def('Jxl.Particle', {
 });
 
 def('Jxl.Emitter', {
-    Extends: Jxl.Group,
-    initialize: function(config) {
+    extend: Jxl.Group,
+    init: function(options) {
+        Jxl.Group.prototype.init.call(this, options);
         X = ( config.x == undefined) ? 0 : config.x;
         Y = ( config.y == undefined) ? 0 : config.y;
-        this.parent();
         this.x = X;
         this.y = Y;
         this.width = 0;

@@ -1,10 +1,10 @@
 def('Jxl.State', {
-    init: function(options) {
-        _(this).extend(options);
-	    this.create();
+    init: function(params) {
+        _(this).extend({
+            defaultGroup: new Jxl.Group()
+        });
+        _(this).extend(params);
     },
-	defaultGroup: new Jxl.Group(),
-    create: function() {},
     add: function(object) {
         return this.defaultGroup.add(object);
     },
