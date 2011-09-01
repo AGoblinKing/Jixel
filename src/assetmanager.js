@@ -19,16 +19,31 @@ def('Jxl.AssetManager', {
     	});
     },
     load: function(assets, callback, progress) {
-    	this.batches.push(assets);
-    	var self = this;
-    	var ln = _(assets).values().length, ct = 0;
-        _(assets).each(function(val, key) {
-    	    self.loadAsset(val[0], key, val[1], function(asset) {
-    		self.assets[key] = asset;
-    		ct++;
-    		if(callback != undefined && ct >= ln) callback();
-    	    });
-    	});
+    	var self = this,
+        ct = 0,
+        ln = 0;
+        if(assets.images) {
+            _(assets.images).each(function(val, key) {
+                self.loadAsset('image', key, val, function(asset) {
+                   self.assets[key] = asset;
+                   ct++;
+                   if(callback != undefined && ct >= ln) callback();
+                   if(progress)progress(ct, ln);
+                });
+                ln++;
+            });
+        }
+        if(assets.sounds) {
+            _(assets.sounds).each(function(val, key) {
+                self.loadAsset('sound', key, val, function(asset) {
+                   self.assets[key] = asset;
+                   ct++;
+                   if(callback != undefined && ct >= ln) callback();
+                   if(progress)progress(ct, ln);
+                });
+                ln++;
+            });
+        }
     },
     loadAsset: function(type, name, src, callback) {
       var self = this;
@@ -38,26 +53,26 @@ def('Jxl.AssetManager', {
       }
       switch(type) {
         case 'audio':
-        case 'sound': //fiiiiix meeeeee
+        case 'sound': 
             var temp = new Audio(src);
             temp.src = src;
             temp.load();
             this.assets[name] = temp;
-            Jxl.Audio.add(name, temp);
+            Jxl.audio.add(name, temp);
             if(callback) callback(temp);
             break;
         case 'image':
             var temp = document.createElement('img');
-            temp.src = src;
-            this.assets[name] = temp;
-            temp.onload = function() {
+            temp.src = src
+            temp.addEventListener('load', function() {
                 var can = document.createElement('canvas');
                 can.width = this.width;
                 can.height = this.height;
                 var ctx = can.getContext('2d');
                 ctx.drawImage(this, 0, 0);
+                self.assets[name] = can;
                 if(callback) callback(can);
-            };
+            }, true);
         break;
       }
     }

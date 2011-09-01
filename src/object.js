@@ -3,8 +3,8 @@
  * Represents a single point in space
  ***/
 def('Jxl.Point', {
-    init: function(options) {
-        _(this).extend(options);
+    init: function(params) {
+        _(this).extend(params);
     },
     x: 0,
     y: 0
@@ -37,8 +37,8 @@ def('Jxl.Rect', {
  ***/
 def('Jxl.Object', {
     extend: Jxl.Rect,
-    init: function(options) {
-       Jxl.Rect.prototype.init.call(this, options);
+    init: function(params) {
+       Jxl.Rect.prototype.init.call(this, params);
     },
     _point: new Jxl.Point(),
     collideLeft: true,
@@ -91,13 +91,13 @@ def('Jxl.Object', {
         this.colHullY.width = this.width - cx;
         this.colHullY.height = this.height - cx;
     },
-    updateMotion: function(delta) {
+    updateMotion: function() {
         if(!this.moves) return;
         if(this.solid) this.refreshHulls();
         this.onFloor = false;
-        var vc = (Jxl.Util.computeVelocity(delta, this.angularVelocity, this.angularAcceleration, this.angularDrag, this.maxAngular) - this.angularVelocity)/2;
+        var vc = (Jxl.Util.computeVelocity(Jxl.delta, this.angularVelocity, this.angularAcceleration, this.angularDrag, this.maxAngular) - this.angularVelocity)/2;
         this.angularVelocity += vc;
-        this.angle += this.angularVelocity*delta;
+        this.angle += this.angularVelocity*Jxl.delta;
         this.angularVelocity += vc;
         
         var thrustComponents;
@@ -112,12 +112,12 @@ def('Jxl.Object', {
             thrustComponents = this._pZero;
         }
         
-        vc = (Jxl.Util.computeVelocity(delta, this.velocity.x, this.acceleration.x+thrustComponents.x,this.drag.x, this.maxVelocity.x) - this.velocity.x)/2;
+        vc = (Jxl.Util.computeVelocity(this.velocity.x, this.acceleration.x+thrustComponents.x,this.drag.x, this.maxVelocity.x) - this.velocity.x)/2;
         this.velocity.x += vc;
         var xd = this.velocity.x * Jxl.delta;
         this.velocity.x += vc;
         
-        vc = (Jxl.Util.computeVelocity(delta, this.velocity.y, this.acceleration.y+thrustComponents.y, this.drag.y, this.maxVelocity.y) - this.velocity.y)/2;
+        vc = (Jxl.Util.computeVelocity(this.velocity.y, this.acceleration.y+thrustComponents.y, this.drag.y, this.maxVelocity.y) - this.velocity.y)/2;
         this.velocity.y += vc;
         var yd = this.velocity.y * Jxl.delta;
         this.velocity.y += vc;

@@ -8,23 +8,24 @@ def('Cat', {
         this.speed = -80;
         this.drag = new Jxl.Point({x:150,y:150});
     },
+    delta: 0,
     update: function() {
-        /*
-        if ('A' in game.keys) {
+        if (Jxl.keys.on('A')) {
              this.velocity.x = this.speed;
              this._flipped = true;
              this.play('run');
-        } else if ('D' in game.keys) {
+        } else if (Jxl.keys.on('D')) {
              this._flipped = false;
              this.play('run');
              this.velocity.x = -1*this.speed;
         } else {
              this.play('idle');
         }
-        if('SPACE' in game.keys && this.onFloor) {
-             game.audio.play('jump');
-             this.velocity.y = -150;
-        } */ 
+        if(Jxl.keys.on(32) && this.delta > .5) {
+            this.delta = 0;
+            Jxl.audio.play('jump');
+        }
+        this.delta += Jxl.delta;
         Jxl.Sprite.prototype.update.call(this);
-    }  
+    }
 });

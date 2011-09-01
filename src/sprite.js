@@ -1,9 +1,8 @@
 def('Jxl.Sprite', {
     extend: Jxl.Object,
-    init: function(config) {
+    init: function(params) {
         var self = this;
-        console.log(config);
-        Jxl.Object.prototype.init.call(this, config);
+        Jxl.Object.prototype.init.call(this, params);
         this.buffer = document.createElement('canvas');
         this.buffer.width = this.width;
         this.buffer.height = this.height;
@@ -13,6 +12,8 @@ def('Jxl.Sprite', {
         this.resetHelpers();
     },
 	isSprite: true,
+    width: 32,
+    height: 32,
 	angle: 0,
 	_alpha: 1,
 	_color: 0x00ffffff,
@@ -29,6 +30,7 @@ def('Jxl.Sprite', {
 	_curAnim: null,
 	animated: false,
     play: function(name, force) {
+        this.animated = true;
         if(force == undefined) force = false;
         if(!force && this._curAnim != null && name == this._curAnim.name) return;
         this._curFrame = 0;

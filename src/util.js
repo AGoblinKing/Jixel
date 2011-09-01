@@ -626,12 +626,12 @@ def('Jxl.Util', {
     getAngle: function(x, y) {
         return Math.atan2(y, x) * 180 / Math.PI;
     },
-    computeVelocity: function(time, velocity, acceleration, drag, max) {
+    computeVelocity: function(velocity, acceleration, drag, max) {
         if (acceleration == undefined) acceleration = 0;
         if (drag == undefined) drag = 0;
         if (max == undefined) max = 10000;
 
-        if (acceleration != 0) velocity += acceleration * time;
+        if (acceleration != 0) velocity += acceleration * Jxl.delta;
         else if (drag != 0) {
             var d = drag * time;
             if (velocity - d > 0) velocity -= d;

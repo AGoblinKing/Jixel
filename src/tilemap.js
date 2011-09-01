@@ -1,7 +1,7 @@
 def('Jxl.TileMap', {
     extend: Jxl.Object,
     init: function(options) {
-        this.prototype.supr.call(this, options);
+       Jxl.Object.prototype.init.call(this, options);
     },
     auto: Jxl.TileMapOFF,
     collideIndex: 1,
@@ -25,7 +25,7 @@ def('Jxl.TileMap', {
         fixed: true
     }),
     _callbacks: new Array(),
-    fixed: true,
+    fixed: false,
     loadMap: function(MapData, TileGraphic, TileWidth, TileHeight) {
         var c, cols, rows = MapData.split("\n");
         this.heightInTiles = rows.length;
@@ -76,7 +76,7 @@ def('Jxl.TileMap', {
         return this;
     },
     render: function() {
-        this._point = this.getScreenXY(Jxl, this._point);
+        this._point = this.getScreenXY(this._point);
         var _flashPoint = new Jxl.Point({
             x: this._point.x,
             y: this._point.y

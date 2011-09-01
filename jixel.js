@@ -6,31 +6,27 @@ def('Jxl', {
         var self = this;
         width = (config.width === undefined) ? 240 : config.width;
         height = (config.height === undefined) ? 160 : config.height;
-        self.state = new Jxl.State();
         self.canvas = (config.canvas !== undefined) ? config.canvas : new Element('canvas');
         self.buffer = self.canvas.getContext('2d');
         self.scale = 1;
         self.showBB = false;
-        self.autoPause = true;
         self._width(width);
+        self.state = new Jxl.State();
+        self.audio = new Jxl.Audio();
         self.mouse = new Jxl.Mouse();
+        self.keys = new Jxl.Keyboard();
         self._height(height);
         self.refresh = 16;
         self.running = false;
+        self.delta = 0;
         self.fullScreen = false;
         self.keepResolution = false;
         self.date = new Date();
         self._scrollTarget = new Jxl.Point();
         self.unfollow();
+        self.scroll = new Jxl.Point();
         self.renderedFrames = 0;
         Jxl.Util.setWorldBounds(0,0,this.width, this.height);
-    },
-    toggleFPS: function() {
-        if(!this._showFPS) {
-            this.showFPS();
-        } else {
-            this.hideFPS();
-        }
     },
     follow: function(target, lerp) { 
         if(lerp == undefined) lerp = 1;
@@ -41,9 +37,9 @@ def('Jxl', {
         
         this.scroll.x = this._scrollTarget.x;
         this.scroll.y = this._scrollTarget.y;
-        this.doFollow(0);
+        this.doFollow();
     },
-    doFollow: function(delta) {
+    doFollow: function() {
         if(this.followTarget != null) {
             this._scrollTarget.x = (this.width>>1)-this.followTarget.x-(this.followTarget.width>>1);
             this._scrollTarget.y = (this.height>>1)-this.followTarget.y-(this.followTarget.height>>1);
@@ -51,8 +47,8 @@ def('Jxl', {
                 this._scrollTarget.x -= this.followTarget.velocity.x*this.followLead.x;
                this. _scrollTarget.y -= this.followTarget.velocity.y*this.followLead.y;
             }
-            this.scroll.x += (this._scrollTarget.x-this.scroll.x)*this.followLerp*delta;
-            this.scroll.y += (this._scrollTarget.y-this.scroll.y)*this.followLerp*delta;
+            this.scroll.x += (this._scrollTarget.x-this.scroll.x)*this.followLerp*Jxl.delta;
+            this.scroll.y += (this._scrollTarget.y-this.scroll.y)*this.followLerp*Jxl.delta;
             if(this.followMin != null) {
                 if(this.scroll.x > this.followMin.x)
                     this.scroll.x = this.followMin.x;
@@ -151,17 +147,18 @@ def('Jxl', {
         this.state.preProcess();
         this.state.render();
         this.mouse.render();
+        this.keys.update();
+        this.audio.update();
         this.state.postProcess();
-    },
-    click: function() {}
+    }
 });
 
 /***
  * Represents a single point in space
  ***/
 def('Jxl.Point', {
-    init: function(options) {
-        _(this).extend(options);
+    init: function(params) {
+        _(this).extend(params);
     },
     x: 0,
     y: 0
@@ -194,8 +191,8 @@ def('Jxl.Rect', {
  ***/
 def('Jxl.Object', {
     extend: Jxl.Rect,
-    init: function(options) {
-       Jxl.Rect.prototype.init.call(this, options);
+    init: function(params) {
+       Jxl.Rect.prototype.init.call(this, params);
     },
     _point: new Jxl.Point(),
     collideLeft: true,
@@ -248,13 +245,13 @@ def('Jxl.Object', {
         this.colHullY.width = this.width - cx;
         this.colHullY.height = this.height - cx;
     },
-    updateMotion: function(delta) {
+    updateMotion: function() {
         if(!this.moves) return;
         if(this.solid) this.refreshHulls();
         this.onFloor = false;
-        var vc = (Jxl.Util.computeVelocity(delta, this.angularVelocity, this.angularAcceleration, this.angularDrag, this.maxAngular) - this.angularVelocity)/2;
+        var vc = (Jxl.Util.computeVelocity(Jxl.delta, this.angularVelocity, this.angularAcceleration, this.angularDrag, this.maxAngular) - this.angularVelocity)/2;
         this.angularVelocity += vc;
-        this.angle += this.angularVelocity*delta;
+        this.angle += this.angularVelocity*Jxl.delta;
         this.angularVelocity += vc;
         
         var thrustComponents;
@@ -269,12 +266,12 @@ def('Jxl.Object', {
             thrustComponents = this._pZero;
         }
         
-        vc = (Jxl.Util.computeVelocity(delta, this.velocity.x, this.acceleration.x+thrustComponents.x,this.drag.x, this.maxVelocity.x) - this.velocity.x)/2;
+        vc = (Jxl.Util.computeVelocity(Jxl.delta, this.velocity.x, this.acceleration.x+thrustComponents.x,this.drag.x, this.maxVelocity.x) - this.velocity.x)/2;
         this.velocity.x += vc;
         var xd = this.velocity.x * Jxl.delta;
         this.velocity.x += vc;
         
-        vc = (Jxl.Util.computeVelocity(delta, this.velocity.y, this.acceleration.y+thrustComponents.y, this.drag.y, this.maxVelocity.y) - this.velocity.y)/2;
+        vc = (Jxl.Util.computeVelocity(Jxl.delta, this.velocity.y, this.acceleration.y+thrustComponents.y, this.drag.y, this.maxVelocity.y) - this.velocity.y)/2;
         this.velocity.y += vc;
         var yd = this.velocity.y * Jxl.delta;
         this.velocity.y += vc;
@@ -725,10 +722,9 @@ def('Jxl.State', {
 
 def('Jxl.Sprite', {
     extend: Jxl.Object,
-    init: function(config) {
+    init: function(params) {
         var self = this;
-        console.log(config);
-        Jxl.Object.prototype.init.call(this, config);
+        Jxl.Object.prototype.init.call(this, params);
         this.buffer = document.createElement('canvas');
         this.buffer.width = this.width;
         this.buffer.height = this.height;
@@ -738,6 +734,8 @@ def('Jxl.Sprite', {
         this.resetHelpers();
     },
 	isSprite: true,
+    width: 32,
+    height: 32,
 	angle: 0,
 	_alpha: 1,
 	_color: 0x00ffffff,
@@ -754,6 +752,7 @@ def('Jxl.Sprite', {
 	_curAnim: null,
 	animated: false,
     play: function(name, force) {
+        this.animated = true;
         if(force == undefined) force = false;
         if(!force && this._curAnim != null && name == this._curAnim.name) return;
         this._curFrame = 0;
@@ -881,7 +880,7 @@ def('Jxl.Anim', {
 def('Jxl.TileMap', {
     extend: Jxl.Object,
     init: function(options) {
-        this.prototype.supr.call(this, options);
+       Jxl.Object.prototype.init.call(this, options);
     },
     auto: Jxl.TileMapOFF,
     collideIndex: 1,
@@ -905,7 +904,7 @@ def('Jxl.TileMap', {
         fixed: true
     }),
     _callbacks: new Array(),
-    fixed: true,
+    fixed: false,
     loadMap: function(MapData, TileGraphic, TileWidth, TileHeight) {
         var c, cols, rows = MapData.split("\n");
         this.heightInTiles = rows.length;
@@ -956,7 +955,7 @@ def('Jxl.TileMap', {
         return this;
     },
     render: function() {
-        this._point = this.getScreenXY(Jxl, this._point);
+        this._point = this.getScreenXY(this._point);
         var _flashPoint = new Jxl.Point({
             x: this._point.x,
             y: this._point.y
@@ -1126,6 +1125,9 @@ def('Jxl.TileMap', {
         this.colHullY.width = this._tileWidth;
         this.colHullY.height = this._tileHeight;
     },
+    update: function() {
+        Jxl.Object.prototype.update.call(this);
+    },
     preCollide: function(Obj) {
         var r;
         var c;
@@ -1253,7 +1255,7 @@ def('Jxl.Audio', {
             this.channels[i].dead = true;
         }
     },
-    play: function(name, loop, start, finish, volume) {
+    play: function(name, loop,  volume, start, finish) {
         if(name in this.sounds) {
             for(var i = 0;i < this.channels.length; i++) {
                 if(this.channels[i].dead) {
@@ -1292,7 +1294,7 @@ def('Jxl.Audio', {
            if(!this.channels[i].dead) this.channels[i].pause();
         }
     },
-    update: function(delta) {
+    update: function() {
         var i = this.channels.length-1;
         while(i >= 0 ) {
             if(!this.channels[i].paused && this.channels[i].currentTime >= this.channels[i].finish) {
@@ -1331,16 +1333,31 @@ def('Jxl.AssetManager', {
     	});
     },
     load: function(assets, callback, progress) {
-    	this.batches.push(assets);
-    	var self = this;
-    	var ln = _(assets).values().length, ct = 0;
-        _(assets).each(function(val, key) {
-    	    self.loadAsset(val[0], key, val[1], function(asset) {
-    		self.assets[key] = asset;
-    		ct++;
-    		if(callback != undefined && ct >= ln) callback();
-    	    });
-    	});
+    	var self = this,
+        ct = 0,
+        ln = 0;
+        if(assets.images) {
+            _(assets.images).each(function(val, key) {
+                self.loadAsset('image', key, val, function(asset) {
+                   self.assets[key] = asset;
+                   ct++;
+                   if(callback != undefined && ct >= ln) callback();
+                   if(progress)progress(ct, ln);
+                });
+                ln++;
+            });
+        }
+        if(assets.sounds) {
+            _(assets.sounds).each(function(val, key) {
+                self.loadAsset('sound', key, val, function(asset) {
+                   self.assets[key] = asset;
+                   ct++;
+                   if(callback != undefined && ct >= ln) callback();
+                   if(progress)progress(ct, ln);
+                });
+                ln++;
+            });
+        }
     },
     loadAsset: function(type, name, src, callback) {
       var self = this;
@@ -1350,26 +1367,26 @@ def('Jxl.AssetManager', {
       }
       switch(type) {
         case 'audio':
-        case 'sound': //fiiiiix meeeeee
+        case 'sound': 
             var temp = new Audio(src);
             temp.src = src;
             temp.load();
             this.assets[name] = temp;
-            Jxl.Audio.add(name, temp);
+            Jxl.audio.add(name, temp);
             if(callback) callback(temp);
             break;
         case 'image':
             var temp = document.createElement('img');
-            temp.src = src;
-            this.assets[name] = temp;
-            temp.onload = function() {
+            temp.src = src
+            temp.addEventListener('load', function() {
                 var can = document.createElement('canvas');
                 can.width = this.width;
                 can.height = this.height;
                 var ctx = can.getContext('2d');
                 ctx.drawImage(this, 0, 0);
+                self.assets[name] = can;
                 if(callback) callback(can);
-            };
+            }, true);
         break;
       }
     }
@@ -2042,15 +2059,44 @@ def('Jxl.Mouse', {
     init: function() {
         Jxl.Object.prototype.init.call(this);
         var self = this;
-        Jxl.canvas.onmousemove = function(e) {
+        Jxl.canvas.addEventListener('mousemove', function(e) {
             self.x = e.x/Jxl.scale;
             self.y = e.y/Jxl.scale;
-        };
-        Jxl.canvas.onclick = function(e) {
-            
-        };
+        }, true);
+        Jxl.canvas.addEventListener('click', function(e) {
+            //collide with objects and tell them they were clicked
+            console.log([self.x, self.y]);
+        }, true);
     },
     scrollFactor: new Jxl.Point({x: 0, y: 0}),
     width: 1,
     height: 1
+});
+def('Jxl.Keyboard', {
+    init: function() {
+        var self = this;
+        window.addEventListener('keydown', function(e) {
+            self.keys[String.fromCharCode(e.keyCode)] = true;
+            self.keys[e.keyCode] = true;
+        }, true);
+        window.addEventListener('keypress', function(e) {
+            self.pressed[String.fromCharCode(e.keyCode)] = true;
+            self.pressed[e.keyCode] = true;
+        }, true);
+        window.addEventListener('keyup', function(e) {
+            delete self.keys[e.keyCode];
+            delete self.keys[String.fromCharCode(e.keyCode)];
+        }, true);
+    },
+    pressed: {},
+    keys: {},
+    on: function(key) {
+        return key in this.keys;
+    },
+    press: function(key) {
+        return key in this.pressed;
+    },
+    update: function() {
+        this.pressed = {};
+    }
 });
