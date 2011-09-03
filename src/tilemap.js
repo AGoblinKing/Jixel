@@ -27,55 +27,59 @@ def('Jxl.TileMap', {
             _callbacks: new Array(),
             fixed: true
        });
-       this.applyParams(params);
+       this.loadMap(params);
     },
-    loadMap: function(MapData, TileGraphic, TileWidth, TileHeight) {
-        var c, cols, rows = MapData.split("\n");
-        this.heightInTiles = rows.length;
-        this._data = [];
-        for (var r = 0; r < this.heightInTiles; r++) {
-            cols = rows[r].split(",");
-            if (cols.length <= 1) {
-                this.heightInTiles--;
-                continue;
+    /* You need a minimum of MapData, TileGraphic, TileWidth, TileHeight to loadGraphic completely.*/
+    loadMap: function(params) {
+        this.applyParams(params);
+        
+        if(this.tileGraphic) {
+            var c, cols, rows = this.mapData.split("\n");
+            this.heightInTiles = rows.length;
+            this._data = [];
+            for (var r = 0; r < this.heightInTiles; r++) {
+                cols = rows[r].split(",");
+                if (cols.length <= 1) {
+                    this.heightInTiles--;
+                    continue;
+                }
+                if (this.widthInTiles == 0) this.widthInTiles = cols.length
+                for (c = 0; c < this.widthInTiles; c++)
+                this._data.push(cols[c]);
             }
-            if (this.widthInTiles == 0) this.widthInTiles = cols.length
-            for (c = 0; c < this.widthInTiles; c++)
-            this._data.push(cols[c]);
+    
+            //Pre-Process the map data if its auto-tiled
+            var i;
+            this.totalTiles = this.widthInTiles * this.heightInTiles;
+            if (this.auto > Jxl.TileMapOFF) {
+                this.collideIndex = this.startingIndex = this.drawIndex = 1;
+                i = 0;
+                while (i < this.totalTiles)
+                this.autoTile(i++);
+            }
+    
+            this._pixels = this.tileGraphic;
+    
+            if (this.tileWidth == undefined) this._tileWidth = this._pixels.height;
+            else this._tileWidth = this.tileWidth;
+            if (this.tileHeight == undefined) this._tileHeight = this._tileWidth;
+            else this._tileHeight = this.tileHeight;
+    
+            this._block.width = this._tileWidth;
+            this._block.height = this._tileHeight;
+    
+            this.width = this.widthInTiles * this._tileWidth;
+            this.height = this.heightInTiles * this._tileHeight;
+    
+            this._rects = new Array(this.totalTiles);
+            for (i = 0; i < this.totalTiles; i++)
+            this.updateTile(i);
+    
+            this._screenRows = Math.ceil(Jxl.height / this._tileHeight) + 1;
+            if (this._screenRows > this.heightInTiles) this._screenRows = this.heightInTiles;
+            this._screenCols = Math.ceil(Jxl.width / this._tileWidth) + 1;
+            if (this._screenCols > this.widthInTiles) this._screenCols = this.widthInTiles;
         }
-
-        //Pre-Process the map data if its auto-tiled
-        var i;
-        this.totalTiles = this.widthInTiles * this.heightInTiles;
-        if (this.auto > Jxl.TileMapOFF) {
-            this.collideIndex = this.startingIndex = this.drawIndex = 1;
-            i = 0;
-            while (i < this.totalTiles)
-            this.autoTile(i++);
-        }
-
-        this._pixels = TileGraphic;
-
-        if (TileWidth == undefined) this._tileWidth = this._pixels.height;
-        else this._tileWidth = TileWidth;
-        if (TileHeight == undefined) this._tileHeight = this._tileWidth;
-        else this._tileHeight = TileHeight;
-
-        this._block.width = this._tileWidth;
-        this._block.height = this._tileHeight;
-
-        this.width = this.widthInTiles * this._tileWidth;
-        this.height = this.heightInTiles * this._tileHeight;
-
-        this._rects = new Array(this.totalTiles);
-        for (i = 0; i < this.totalTiles; i++)
-        this.updateTile(i);
-
-        this._screenRows = Math.ceil(Jxl.height / this._tileHeight) + 1;
-        if (this._screenRows > this.heightInTiles) this._screenRows = this.heightInTiles;
-        this._screenCols = Math.ceil(Jxl.width / this._tileWidth) + 1;
-        if (this._screenCols > this.widthInTiles) this._screenCols = this.widthInTiles;
-
         return this;
     },
     render: function() {

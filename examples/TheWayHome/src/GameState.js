@@ -3,7 +3,7 @@ def('GameState', {
     init: function() {
         Jxl.State.prototype.init.call(this);
         this.player = new Cat(Jxl.am.get('animals'), 50, -50);
-        this.tiles = new Jxl.TileMap({y:100, mapData:"0,5,3,4,2,1,9,2", tileGraphic: Jxl.am.get('tiles'), tileWidth:16, tileHeight:16});
+        this.tiles = new Jxl.TileMap({y:100}).loadMap("0,5,3,4,2,1,9,2", Jxl.am.get('tiles'), 16, 16);
         this.add(this.tiles);
         this.exploder = new Jxl.Emitter();
         this.exploder.createSprites(Jxl.am.get('tiles'), 5, new Jxl.Point({x:16, y:16}), true, true); 
