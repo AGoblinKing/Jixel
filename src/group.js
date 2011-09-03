@@ -226,7 +226,7 @@ def('Jxl.Group', {
     },
     kill: function() {
         this.killMembers();
-        this.parent();
+        Jxl.Object.prototype.kill.call(this);
     },
     destroyMembers: function() {
         var i = 0;

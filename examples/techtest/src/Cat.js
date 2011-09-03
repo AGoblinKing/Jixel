@@ -15,10 +15,10 @@ def('Cat', {
     update: function() {
         if (Jxl.keys.on('A')) {
              this.velocity.x = this.speed;
-             this._flipped = true;
+             this.reverse = true;
              this.play('run');
         } else if (Jxl.keys.on('D')) {
-             this._flipped = false;
+             this.reverse = false;
              this.play('run');
              this.velocity.x = -1*this.speed;
         } else {
@@ -27,6 +27,7 @@ def('Cat', {
         if(Jxl.keys.press(32) || Jxl.keys.touchPress) {
             this.velocity.y = -100;
             Jxl.audio.play('jump');
+            Jxl.state.explode(this);
         } 
         this.delta += Jxl.delta;
         Jxl.Sprite.prototype.update.call(this);

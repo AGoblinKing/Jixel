@@ -13,7 +13,7 @@ def('Jxl.Sprite', {
         	_blend: null,
         	_facing: 1,
         	_animations: {},
-        	_flipped: 0,
+        	reverse: false,
         	_curFrame: 0,
         	_frameTimer: 0,
         	finished: false,
@@ -24,14 +24,7 @@ def('Jxl.Sprite', {
         	_curAnim: null,
         	animated: false
         });
-        this.applyParams(params);
-        this.buffer = document.createElement('canvas');
-        this.buffer.width = this.width;
-        this.buffer.height = this.height;
-        if(this.graphic == undefined) this.graphic = document.createElement('canvas');
-        this.bufferCTX = this.buffer.getContext('2d');
-        this.bufferCTX.drawImage(this.graphic, 0, 0, this.width, this.height, 0, 0, this.width, this.height); 
-        this.resetHelpers();
+        this.loadGraphic(params);
     },
     play: function(name, force) {
         this.animated = true;
@@ -55,13 +48,13 @@ def('Jxl.Sprite', {
             ry = Math.floor(rx/this.graphic.width)*this.height;
             rx = rx % this.graphic.width;
         }
-        if(this._flipped) this.flip();
+        if(this.reverse) this.flip();
         this.bufferCTX.drawImage(this.graphic, rx, ry, this.width, this.height, 0, 0, this.width, this.height);
     },
     // Rotations are stored on the fly instead of prebaked since they are cheaper here than in flixel.
     render: function(){
         if(!this.visible) return;
-        if(this.animated) this.calcFrame();
+        if(this.animated || this.reverse) this.calcFrame();
         var rCan = this.buffer;
         this._point = this.getScreenXY(this._point);
 	    if(this.border.visible || Jxl.showBB) this.renderBorder(this._point);
@@ -142,6 +135,17 @@ def('Jxl.Sprite', {
         this._caf = 0;
         this.refreshHulls();
         this._graphicCTX = this.graphic.getContext('2d');
+    },
+    loadGraphic: function(params) {
+        this.applyParams(params);
+        this.buffer = document.createElement('canvas');
+        this.buffer.width = this.width;
+        this.buffer.height = this.height;
+        if(this.graphic == undefined) this.graphic = document.createElement('canvas');
+        this.bufferCTX = this.buffer.getContext('2d');
+        this.bufferCTX.drawImage(this.graphic, 0, 0, this.width, this.height, 0, 0, this.width, this.height); 
+        this.resetHelpers();
+        return this;
     },
     createGraphic: function(Width, Height, Color) {
         Color = ( Color == undefined) ? 0xFFFFFFFF : Color;

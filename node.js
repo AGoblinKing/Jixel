@@ -3,7 +3,7 @@ var connect = require('connect'),
     pro = require('./node_modules/uglify-js/lib/process');
 
 var libpkg = ['underscore', 'def', 'RAF'];
-var pkg = ['jixel', 'object', 'group', 'state', 'sprite', 'tilemap', 'audio', 'assetmanager', 'util', 'mouse', 'keyboard'];
+var pkg = ['jixel', 'object', 'group', 'state', 'sprite', 'tilemap', 'audio', 'assetmanager', 'util', 'emitter', 'mouse', 'keyboard'];
 
 var server = connect.createServer();
 server.use(connect.router(function(app) {

@@ -20,11 +20,11 @@ def('Jxl.Keyboard', {
             self.touch = true;
             self.touchPress = true;
             e.preventDefault();
-        });
+        }, true);
         document.body.addEventListener('touchstop', function(e) {
             self.touch = false;
             e.preventDefault();
-        });
+        }, true);
         
     },
     touch: false,
