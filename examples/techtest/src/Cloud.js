@@ -10,5 +10,8 @@ def('Cloud', {
             fixed: true
         };
         Jxl.Sprite.prototype.init.call(this, defaults);
+    }, 
+    update: function() {
+        Jxl.Sprite.prototype.update.call(this);
     }
 });

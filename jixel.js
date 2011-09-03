@@ -7,6 +7,8 @@ def('Jxl', {
         width = (config.width === undefined) ? 240 : config.width;
         height = (config.height === undefined) ? 160 : config.height;
         self.canvas = (config.canvas !== undefined) ? config.canvas : document.createElement('canvas');
+        self.canvasCTX = self.canvas.getContext('2d');
+        self.bufferCVS = document.createElement('canvas');
         self.buffer = self.canvas.getContext('2d');
         self.scale = (config.scale === undefined) ? 1 : config.scale;
         self.setScale(self.scale);
@@ -82,11 +84,13 @@ def('Jxl', {
     _width: function(width) {
         if(width != undefined) {
             this.screenWidth(width*this.scale);
+            this.bufferCVS.width = width;
             this.width = Math.floor(width);
         }
     },
     _height: function(height) {
         if(height != undefined) {
+            this.bufferCVS.height = height;
             this.screenHeight(height*this.scale);
             this.height = Math.floor(height);
         }
@@ -109,7 +113,7 @@ def('Jxl', {
     },
     screenWidth: function(width) {
         if(width != undefined) {
-            this.canvas.width = width; 
+            this.canvas.width = width;
         }
         return this.canvas.width; 
     },
@@ -718,7 +722,7 @@ def('Jxl.State', {
 	    this.defaultGroup.remove(object);
     },
     preProcess: function() {
-        Jxl.buffer.clearRect(0,0, Jxl.screenWidth(), Jxl.screenHeight());
+        Jxl.buffer.clearRect(0,0, Jxl.width, Jxl.height);
     },
     update: function() {
         this.defaultGroup.update();
@@ -754,6 +758,7 @@ def('Jxl.Sprite', {
         	_curFrame: 0,
         	_frameTimer: 0,
         	finished: false,
+            rotPoint: new Jxl.Point(),
         	_caf: 0,
             scale: new Jxl.Point({x: 1,y: 1}),
             offset: new Jxl.Point(),
@@ -801,7 +806,19 @@ def('Jxl.Sprite', {
         var rCan = this.buffer;
         this._point = this.getScreenXY(this._point);
 	    if(this.border.visible || Jxl.showBB) this.renderBorder(this._point);
-        Jxl.buffer.drawImage(rCan, 0,0, this.width, this.height, this._point.x, this._point.y, this.width, this.height);    
+        if(this.angle != 0) {
+            Jxl.buffer.save();
+            this.rotPoint.x = this._point.x+this.width/2;
+            this.rotPoint.y = this._point.y+this.height/2;
+            Jxl.buffer.translate(this.rotPoint.x, this.rotPoint.y);
+            Jxl.buffer.rotate(this.angle*Math.PI/180);
+            Jxl.buffer.translate(-this.rotPoint.x, -this.rotPoint.y);
+            Jxl.buffer.drawImage(rCan, this._point.x, this._point.y, this.width, this.height);    
+            Jxl.buffer.restore();
+        } else {
+             Jxl.buffer.drawImage(rCan, this._point.x, this._point.y, this.width, this.height);
+        }
+        
     },
     onEmit: function() {},
     updateAnimation: function() {
@@ -2116,7 +2133,20 @@ def('Jxl.Keyboard', {
             delete self.pressed[String.fromCharCode(e.keyCode)];
             delete self.pressed[e.keyCode];
         }, true);
+
+        document.body.addEventListener('touchstart', function(e) {
+            self.touch = true;
+            self.touchPress = true;
+            e.preventDefault();
+        });
+        document.body.addEventListener('touchstop', function(e) {
+            self.touch = false;
+            e.preventDefault();
+        });
+        
     },
+    touch: false,
+    touchPress: false,
     pressed: {},
     keys: {},
     on: function(key) {
@@ -2130,5 +2160,6 @@ def('Jxl.Keyboard', {
         _(this.pressed).each(function(val, key) {
             self.pressed[key] = false; 
         });
+        self.touchPress = false;
     }
 });

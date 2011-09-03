@@ -15,7 +15,20 @@ def('Jxl.Keyboard', {
             delete self.pressed[String.fromCharCode(e.keyCode)];
             delete self.pressed[e.keyCode];
         }, true);
+
+        document.body.addEventListener('touchstart', function(e) {
+            self.touch = true;
+            self.touchPress = true;
+            e.preventDefault();
+        });
+        document.body.addEventListener('touchstop', function(e) {
+            self.touch = false;
+            e.preventDefault();
+        });
+        
     },
+    touch: false,
+    touchPress: false,
     pressed: {},
     keys: {},
     on: function(key) {
@@ -29,5 +42,6 @@ def('Jxl.Keyboard', {
         _(this.pressed).each(function(val, key) {
             self.pressed[key] = false; 
         });
+        self.touchPress = false;
     }
 });

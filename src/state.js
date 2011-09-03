@@ -12,7 +12,7 @@ def('Jxl.State', {
 	    this.defaultGroup.remove(object);
     },
     preProcess: function() {
-        Jxl.buffer.clearRect(0,0, Jxl.screenWidth(), Jxl.screenHeight());
+        Jxl.buffer.clearRect(0,0, Jxl.width, Jxl.height);
     },
     update: function() {
         this.defaultGroup.update();

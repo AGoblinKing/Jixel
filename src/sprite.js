@@ -17,6 +17,7 @@ def('Jxl.Sprite', {
         	_curFrame: 0,
         	_frameTimer: 0,
         	finished: false,
+            rotPoint: new Jxl.Point(),
         	_caf: 0,
             scale: new Jxl.Point({x: 1,y: 1}),
             offset: new Jxl.Point(),
@@ -64,7 +65,19 @@ def('Jxl.Sprite', {
         var rCan = this.buffer;
         this._point = this.getScreenXY(this._point);
 	    if(this.border.visible || Jxl.showBB) this.renderBorder(this._point);
-        Jxl.buffer.drawImage(rCan, 0,0, this.width, this.height, this._point.x, this._point.y, this.width, this.height);    
+        if(this.angle != 0) {
+            Jxl.buffer.save();
+            this.rotPoint.x = this._point.x+this.width/2;
+            this.rotPoint.y = this._point.y+this.height/2;
+            Jxl.buffer.translate(this.rotPoint.x, this.rotPoint.y);
+            Jxl.buffer.rotate(this.angle*Math.PI/180);
+            Jxl.buffer.translate(-this.rotPoint.x, -this.rotPoint.y);
+            Jxl.buffer.drawImage(rCan, this._point.x, this._point.y, this.width, this.height);    
+            Jxl.buffer.restore();
+        } else {
+             Jxl.buffer.drawImage(rCan, this._point.x, this._point.y, this.width, this.height);
+        }
+        
     },
     onEmit: function() {},
     updateAnimation: function() {

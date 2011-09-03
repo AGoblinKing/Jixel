@@ -24,7 +24,7 @@ def('Cat', {
         } else {
              this.play('idle');
         }
-        if(Jxl.keys.press(32)) {
+        if(Jxl.keys.press(32) || Jxl.keys.touchPress) {
             this.velocity.y = -100;
             Jxl.audio.play('jump');
         } 
