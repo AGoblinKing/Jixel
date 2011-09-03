@@ -2,12 +2,13 @@ var connect = require('connect'),
     jsp = require('./node_modules/uglify-js/lib/parse-js'),
     pro = require('./node_modules/uglify-js/lib/process');
 
-var pkg = ['jixel', 'object', 'group', 'state', 'sprite', 'tilemap', 'audio', 'assetmanager', 'util', 'mouse'];
+var libpkg = ['underscore', 'def', 'RAF'];
+var pkg = ['jixel', 'object', 'group', 'state', 'sprite', 'tilemap', 'audio', 'assetmanager', 'util', 'emitter', 'mouse', 'keyboard'];
 
 var server = connect.createServer();
 server.use(connect.router(function(app) {
     app.get('/jixel.js', function(req, res, next) {
-        res.end(pack(pkg, __dirname + '/src/'));
+        res.end(pack(libpkg, __dirname +'/lib/')+pack(pkg, __dirname + '/src/'));
     });
 }));
 server.use(connect.static(__dirname + '/'));

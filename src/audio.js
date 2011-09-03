@@ -7,7 +7,7 @@ def('Jxl.Audio', {
             this.channels[i].dead = true;
         }
     },
-    play: function(name, loop, start, finish, volume) {
+    play: function(name, loop,  volume, start, finish) {
         if(name in this.sounds) {
             for(var i = 0;i < this.channels.length; i++) {
                 if(this.channels[i].dead) {
@@ -46,7 +46,7 @@ def('Jxl.Audio', {
            if(!this.channels[i].dead) this.channels[i].pause();
         }
     },
-    update: function(delta) {
+    update: function() {
         var i = this.channels.length-1;
         while(i >= 0 ) {
             if(!this.channels[i].paused && this.channels[i].currentTime >= this.channels[i].finish) {

@@ -6,31 +6,30 @@ def('Jxl', {
         var self = this;
         width = (config.width === undefined) ? 240 : config.width;
         height = (config.height === undefined) ? 160 : config.height;
-        self.state = new Jxl.State();
-        self.canvas = (config.canvas !== undefined) ? config.canvas : new Element('canvas');
+        self.canvas = (config.canvas !== undefined) ? config.canvas : document.createElement('canvas');
+        self.canvasCTX = self.canvas.getContext('2d');
+        self.bufferCVS = document.createElement('canvas');
         self.buffer = self.canvas.getContext('2d');
-        self.scale = 1;
+        self.scale = (config.scale === undefined) ? 1 : config.scale;
+        self.setScale(self.scale);
         self.showBB = false;
-        self.autoPause = true;
         self._width(width);
+        self.state = new Jxl.State();
+        self.audio = new Jxl.Audio();
         self.mouse = new Jxl.Mouse();
+        self.keys = new Jxl.Keyboard();
         self._height(height);
         self.refresh = 16;
         self.running = false;
+        self.delta = 0;
         self.fullScreen = false;
         self.keepResolution = false;
         self.date = new Date();
         self._scrollTarget = new Jxl.Point();
         self.unfollow();
+        self.scroll = new Jxl.Point();
         self.renderedFrames = 0;
         Jxl.Util.setWorldBounds(0,0,this.width, this.height);
-    },
-    toggleFPS: function() {
-        if(!this._showFPS) {
-            this.showFPS();
-        } else {
-            this.hideFPS();
-        }
     },
     follow: function(target, lerp) { 
         if(lerp == undefined) lerp = 1;
@@ -41,9 +40,9 @@ def('Jxl', {
         
         this.scroll.x = this._scrollTarget.x;
         this.scroll.y = this._scrollTarget.y;
-        this.doFollow(0);
+        this.doFollow();
     },
-    doFollow: function(delta) {
+    doFollow: function() {
         if(this.followTarget != null) {
             this._scrollTarget.x = (this.width>>1)-this.followTarget.x-(this.followTarget.width>>1);
             this._scrollTarget.y = (this.height>>1)-this.followTarget.y-(this.followTarget.height>>1);
@@ -51,8 +50,8 @@ def('Jxl', {
                 this._scrollTarget.x -= this.followTarget.velocity.x*this.followLead.x;
                this. _scrollTarget.y -= this.followTarget.velocity.y*this.followLead.y;
             }
-            this.scroll.x += (this._scrollTarget.x-this.scroll.x)*this.followLerp*delta;
-            this.scroll.y += (this._scrollTarget.y-this.scroll.y)*this.followLerp*delta;
+            this.scroll.x += (this._scrollTarget.x-this.scroll.x)*this.followLerp*Jxl.delta;
+            this.scroll.y += (this._scrollTarget.y-this.scroll.y)*this.followLerp*Jxl.delta;
             if(this.followMin != null) {
                 if(this.scroll.x > this.followMin.x)
                     this.scroll.x = this.followMin.x;
@@ -85,13 +84,15 @@ def('Jxl', {
     _width: function(width) {
         if(width != undefined) {
             this.screenWidth(width*this.scale);
-            this.width = width;
+            this.bufferCVS.width = width;
+            this.width = Math.floor(width);
         }
     },
     _height: function(height) {
         if(height != undefined) {
+            this.bufferCVS.height = height;
             this.screenHeight(height*this.scale);
-            this.height = height;
+            this.height = Math.floor(height);
         }
     },
     unpause: function() {
@@ -112,7 +113,7 @@ def('Jxl', {
     },
     screenWidth: function(width) {
         if(width != undefined) {
-            this.canvas.width = width; 
+            this.canvas.width = width;
         }
         return this.canvas.width; 
     },
@@ -139,7 +140,7 @@ def('Jxl', {
             }, this.refresh);
         }
     },
-    changeScale: function(scale) {
+    setScale: function(scale) {
         this.scale = scale;
         this._width(this.width);
         this._height(this.height);
@@ -151,20 +152,26 @@ def('Jxl', {
         this.state.preProcess();
         this.state.render();
         this.mouse.render();
+        this.keys.update();
+        this.audio.update();
         this.state.postProcess();
-    },
-    click: function() {}
+    }
 });
 
 /***
  * Represents a single point in space
  ***/
 def('Jxl.Point', {
-    init: function(options) {
-        _(this).extend(options);
+    init: function(params) {
+        _(this).extend({
+            x: 0,
+            y: 0
+        });
+        this.applyParams(params);
     },
-    x: 0,
-    y: 0
+    applyParams: function(params) {
+        if(params)_(this).extend(params);
+    }
 });
 /***
  * Represents a Rectangle
@@ -173,9 +180,12 @@ def('Jxl.Rect', {
     extend: Jxl.Point,
     init: function(params) {
         Jxl.Point.prototype.init.call(this, params);
+        _(this).extend({
+            width: 0,
+            height: 0
+        });
+        this.applyParams(params);
     },
-    width: 0,
-    height: 0,
     left: function() {
         return this.x;
     },
@@ -194,48 +204,51 @@ def('Jxl.Rect', {
  ***/
 def('Jxl.Object', {
     extend: Jxl.Rect,
-    init: function(options) {
-       Jxl.Rect.prototype.init.call(this, options);
+    init: function(params) {
+       Jxl.Rect.prototype.init.call(this, params);
+       _(this).extend({
+            _point: new Jxl.Point(),
+            origin: new Jxl.Point(),
+            velocity: new Jxl.Point(),
+            acceleration: new Jxl.Point(),
+            _pZero: new Jxl.Point(),
+            drag: new Jxl.Point(),
+            maxVelocity: new Jxl.Point({x: 10000, y: 10000}),
+            scrollFactor: new Jxl.Point({x: 1, y: 1}),
+            colHullX: new Jxl.Rect(),
+            colHullY: new Jxl.Rect(),
+            colVector: new Jxl.Point(),
+            colOffsets: [new Jxl.Point()],
+            colHullMinus: new Jxl.Point(),
+            border: {
+                visible: false,
+                thickness: 2,
+                color: '#f00'
+            },
+            collideLeft: true,
+            collideRight: true,
+            collideTop: true,
+            collideBottom: true,
+            angle: 0,
+            angularVelocity: 0,
+            angularDrag: 0,
+            angularAcceleration: 0,
+            maxAngular: 10000,
+            thrust: 0,
+            exists: true,
+            visible: true,
+            active: true,
+            solid: true,
+            fixed: false,
+            moves: true,
+            health: 1,
+            dead: false,
+            _flicker: false,
+            _flickerTimer: -1,
+            _group: false
+       });
+       this.applyParams(params);
     },
-    _point: new Jxl.Point(),
-    collideLeft: true,
-    collideRight: true,
-    collideTop: true,
-    collideBottom: true,
-    origin: new Jxl.Point(),
-    velocity: new Jxl.Point(),
-    acceleration: new Jxl.Point(),
-    _pZero: new Jxl.Point(),
-    drag: new Jxl.Point(),
-    maxVelocity: new Jxl.Point({x: 10000, y: 10000}),
-    angle: 0,
-    angularVelocity: 0,
-    angularDrag: 0,
-    angularAcceleration: 0,
-    maxAngular: 10000,
-    thrust: 0,
-    exists: true,
-    visible: true,
-    border: {
-        visible: false,
-        thickness: 2,
-        color: '#f00'
-    },
-    active: true,
-    solid: true,
-    fixed: false,
-    moves: true,
-    colHullMinus: new Jxl.Point(),
-    health: 1,
-    dead: false,
-    _flicker: false,
-    _flickerTimer: -1,
-    scrollFactor: new Jxl.Point({x: 1, y: 1}),
-    colHullX: new Jxl.Rect(),
-    colHullY: new Jxl.Rect(),
-    colVector: new Jxl.Point(),
-    colOffsets: [new Jxl.Point()],
-    _group: false,
     refreshHulls: function() {
         var cx = this.colHullMinus.x,
             cy = this.colHullMinus.y;
@@ -248,13 +261,13 @@ def('Jxl.Object', {
         this.colHullY.width = this.width - cx;
         this.colHullY.height = this.height - cx;
     },
-    updateMotion: function(delta) {
+    updateMotion: function() {
         if(!this.moves) return;
         if(this.solid) this.refreshHulls();
         this.onFloor = false;
-        var vc = (Jxl.Util.computeVelocity(delta, this.angularVelocity, this.angularAcceleration, this.angularDrag, this.maxAngular) - this.angularVelocity)/2;
+        var vc = (Jxl.Util.computeVelocity(this.angularVelocity, this.angularAcceleration, this.angularDrag, this.maxAngular) - this.angularVelocity)/2;
         this.angularVelocity += vc;
-        this.angle += this.angularVelocity*delta;
+        this.angle += this.angularVelocity*Jxl.delta;
         this.angularVelocity += vc;
         
         var thrustComponents;
@@ -269,12 +282,12 @@ def('Jxl.Object', {
             thrustComponents = this._pZero;
         }
         
-        vc = (Jxl.Util.computeVelocity(delta, this.velocity.x, this.acceleration.x+thrustComponents.x,this.drag.x, this.maxVelocity.x) - this.velocity.x)/2;
+        vc = (Jxl.Util.computeVelocity(this.velocity.x, this.acceleration.x+thrustComponents.x,this.drag.x, this.maxVelocity.x) - this.velocity.x)/2;
         this.velocity.x += vc;
         var xd = this.velocity.x * Jxl.delta;
         this.velocity.x += vc;
         
-        vc = (Jxl.Util.computeVelocity(delta, this.velocity.y, this.acceleration.y+thrustComponents.y, this.drag.y, this.maxVelocity.y) - this.velocity.y)/2;
+        vc = (Jxl.Util.computeVelocity(this.velocity.y, this.acceleration.y+thrustComponents.y, this.drag.y, this.maxVelocity.y) - this.velocity.y)/2;
         this.velocity.y += vc;
         var yd = this.velocity.y * Jxl.delta;
         this.velocity.y += vc;
@@ -411,13 +424,16 @@ def('Jxl.Object', {
 
 def('Jxl.Group', {
     extend: Jxl.Object,
-    _group: true,
-    solid: false,
-    members: [],
-    _last: new Jxl.Point(),
-    _first: true,
     init: function(params) {
         Jxl.Object.prototype.init.call(this, params);
+        _(this).extend({
+            _group: true,
+            solid: false,
+            members: [],
+            _last: new Jxl.Point(),
+            _first: true
+        });
+        this.applyParams(params);
     },
     statics: {
         ASCENDING: -1,
@@ -634,7 +650,7 @@ def('Jxl.Group', {
     },
     kill: function() {
         this.killMembers();
-        this.parent();
+        Jxl.Object.prototype.kill.call(this);
     },
     destroyMembers: function() {
         var i = 0;
@@ -693,12 +709,12 @@ def('Jxl.Group', {
     }
 });
 def('Jxl.State', {
-    init: function(options) {
-        _(this).extend(options);
-	    this.create();
+    init: function(params) {
+        _(this).extend({
+            defaultGroup: new Jxl.Group()
+        });
+        _(this).extend(params);
     },
-	defaultGroup: new Jxl.Group(),
-    create: function() {},
     add: function(object) {
         return this.defaultGroup.add(object);
     },
@@ -706,7 +722,7 @@ def('Jxl.State', {
 	    this.defaultGroup.remove(object);
     },
     preProcess: function() {
-        Jxl.buffer.clearRect(0,0, Jxl.screenWidth(), Jxl.screenHeight());
+        Jxl.buffer.clearRect(0,0, Jxl.width, Jxl.height);
     },
     update: function() {
         this.defaultGroup.update();
@@ -725,35 +741,34 @@ def('Jxl.State', {
 
 def('Jxl.Sprite', {
     extend: Jxl.Object,
-    init: function(config) {
+    init: function(params) {
         var self = this;
-        console.log(config);
-        Jxl.Object.prototype.init.call(this, config);
-        this.buffer = document.createElement('canvas');
-        this.buffer.width = this.width;
-        this.buffer.height = this.height;
-        if(this.graphic == undefined) this.graphic = document.createElement('canvas');
-        this.bufferCTX = this.buffer.getContext('2d');
-        this.bufferCTX.drawImage(this.graphic, 0, 0, this.width, this.height, 0, 0, this.width, this.height); 
-        this.resetHelpers();
+        Jxl.Object.prototype.init.call(this, params);
+        _(this).extend({
+            isSprite: true,
+            width: 32,
+            height: 32,
+            angle: 0,
+            _alpha: 1,
+        	_color: 0x00ffffff,
+        	_blend: null,
+        	_facing: 1,
+        	_animations: {},
+        	reverse: false,
+        	_curFrame: 0,
+        	_frameTimer: 0,
+        	finished: false,
+            rotPoint: new Jxl.Point(),
+        	_caf: 0,
+            scale: new Jxl.Point({x: 1,y: 1}),
+            offset: new Jxl.Point(),
+        	_curAnim: null,
+        	animated: false
+        });
+        this.loadGraphic(params);
     },
-	isSprite: true,
-	angle: 0,
-	_alpha: 1,
-	_color: 0x00ffffff,
-	_blend: null,
-	scale: new Jxl.Point({x: 1,y: 1}),
-	_facing: 1,
-	_animations: {},
-	_flipped: 0,
-	_curFrame: 0,
-	_frameTimer: 0,
-	finished: false,
-	_caf: 0,
-	offset: new Jxl.Point(),
-	_curAnim: null,
-	animated: false,
     play: function(name, force) {
+        this.animated = true;
         if(force == undefined) force = false;
         if(!force && this._curAnim != null && name == this._curAnim.name) return;
         this._curFrame = 0;
@@ -766,6 +781,7 @@ def('Jxl.Sprite', {
         this.bufferCTX.translate(-this.width, 0); 
     },
     calcFrame: function() {
+        this.buffer.width = this.width
         this.bufferCTX.clearRect(0, 0, this.width, this.height);
         var rx = this._curFrame * this.width;
         var ry = 0;
@@ -773,18 +789,29 @@ def('Jxl.Sprite', {
             ry = Math.floor(rx/this.graphic.width)*this.height;
             rx = rx % this.graphic.width;
         }
-        if(this._flipped) this.flip();
+        if(this.reverse) this.flip();
         this.bufferCTX.drawImage(this.graphic, rx, ry, this.width, this.height, 0, 0, this.width, this.height);
     },
     // Rotations are stored on the fly instead of prebaked since they are cheaper here than in flixel.
     render: function(){
         if(!this.visible) return;
-        this.buffer.width = this.width; //dirty hack to reset the canvas
-        if(this.animated) this.calcFrame();
+        if(this.animated || this.reverse) this.calcFrame();
         var rCan = this.buffer;
         this._point = this.getScreenXY(this._point);
 	    if(this.border.visible || Jxl.showBB) this.renderBorder(this._point);
-        Jxl.buffer.drawImage(rCan, 0,0, this.width, this.height, this._point.x, this._point.y, this.width, this.height);    
+        if(this.angle != 0) {
+            Jxl.buffer.save();
+            this.rotPoint.x = this._point.x+this.width/2;
+            this.rotPoint.y = this._point.y+this.height/2;
+            Jxl.buffer.translate(this.rotPoint.x, this.rotPoint.y);
+            Jxl.buffer.rotate(this.angle*Math.PI/180);
+            Jxl.buffer.translate(-this.rotPoint.x, -this.rotPoint.y);
+            Jxl.buffer.drawImage(rCan, this._point.x, this._point.y, this.width, this.height);    
+            Jxl.buffer.restore();
+        } else {
+             Jxl.buffer.drawImage(rCan, this._point.x, this._point.y, this.width, this.height);
+        }
+        
     },
     onEmit: function() {},
     updateAnimation: function() {
@@ -850,6 +877,17 @@ def('Jxl.Sprite', {
         this.refreshHulls();
         this._graphicCTX = this.graphic.getContext('2d');
     },
+    loadGraphic: function(params) {
+        this.applyParams(params);
+        this.buffer = document.createElement('canvas');
+        this.buffer.width = this.width;
+        this.buffer.height = this.height;
+        if(this.graphic == undefined) this.graphic = document.createElement('canvas');
+        this.bufferCTX = this.buffer.getContext('2d');
+        this.bufferCTX.drawImage(this.graphic, 0, 0, this.width, this.height, 0, 0, this.width, this.height); 
+        this.resetHelpers();
+        return this;
+    },
     createGraphic: function(Width, Height, Color) {
         Color = ( Color == undefined) ? 0xFFFFFFFF : Color;
         this.graphic = document.createElement('canvas');
@@ -880,32 +918,35 @@ def('Jxl.Anim', {
 });
 def('Jxl.TileMap', {
     extend: Jxl.Object,
-    init: function(options) {
-        this.prototype.supr.call(this, options);
+    init: function(params) {
+        Jxl.Object.prototype.init.call(this, params);
+        _(this).extend({
+            auto: Jxl.TileMapOFF,
+            collideIndex: 1,
+            startingIndex: 0,
+            drawIndex: 1,
+            widthInTiles: 0,
+            heightInTiles: 0,
+            totalTiles: 0,
+            _buffer: null,
+            _bufferLoc: new Jxl.Point(),
+            _flashRect2: new Jxl.Rect(),
+            _flashRect: new Jxl.Rect(),
+            _data: null,
+            _tileWidth: 0,
+            _tileHeight: 0,
+            _rects: null,
+            _pixels: null,
+            _block: new Jxl.Object({
+                width: 0,
+                height: 0,
+                fixed: true
+            }),
+            _callbacks: new Array(),
+            fixed: true
+       });
+       this.applyParams(params);
     },
-    auto: Jxl.TileMapOFF,
-    collideIndex: 1,
-    startingIndex: 0,
-    drawIndex: 1,
-    widthInTiles: 0,
-    heightInTiles: 0,
-    totalTiles: 0,
-    _buffer: null,
-    _bufferLoc: new Jxl.Point(),
-    _flashRect2: new Jxl.Rect(),
-    _flashRect: new Jxl.Rect(),
-    _data: null,
-    _tileWidth: 0,
-    _tileHeight: 0,
-    _rects: null,
-    _pixels: null,
-    _block: new Jxl.Object({
-        width: 0,
-        height: 0,
-        fixed: true
-    }),
-    _callbacks: new Array(),
-    fixed: true,
     loadMap: function(MapData, TileGraphic, TileWidth, TileHeight) {
         var c, cols, rows = MapData.split("\n");
         this.heightInTiles = rows.length;
@@ -956,7 +997,7 @@ def('Jxl.TileMap', {
         return this;
     },
     render: function() {
-        this._point = this.getScreenXY(Jxl, this._point);
+        this._point = this.getScreenXY(this._point);
         var _flashPoint = new Jxl.Point({
             x: this._point.x,
             y: this._point.y
@@ -1253,7 +1294,7 @@ def('Jxl.Audio', {
             this.channels[i].dead = true;
         }
     },
-    play: function(name, loop, start, finish, volume) {
+    play: function(name, loop,  volume, start, finish) {
         if(name in this.sounds) {
             for(var i = 0;i < this.channels.length; i++) {
                 if(this.channels[i].dead) {
@@ -1292,7 +1333,7 @@ def('Jxl.Audio', {
            if(!this.channels[i].dead) this.channels[i].pause();
         }
     },
-    update: function(delta) {
+    update: function() {
         var i = this.channels.length-1;
         while(i >= 0 ) {
             if(!this.channels[i].paused && this.channels[i].currentTime >= this.channels[i].finish) {
@@ -1331,16 +1372,29 @@ def('Jxl.AssetManager', {
     	});
     },
     load: function(assets, callback, progress) {
-    	this.batches.push(assets);
-    	var self = this;
-    	var ln = _(assets).values().length, ct = 0;
-        _(assets).each(function(val, key) {
-    	    self.loadAsset(val[0], key, val[1], function(asset) {
-    		self.assets[key] = asset;
-    		ct++;
-    		if(callback != undefined && ct >= ln) callback();
-    	    });
-    	});
+    	var self = this,
+        ct = 0,
+        ln = 0;
+        if(assets.images) {
+            _(assets.images).each(function(val, key) {
+                self.loadAsset('image', key, val, function(asset) {
+                   ct++;
+                   if(callback != undefined && ct >= ln) callback();
+                   if(progress)progress(ct, ln);
+                });
+                ln++;
+            });
+        }
+        if(assets.sounds) {
+            _(assets.sounds).each(function(val, key) {
+                self.loadAsset('sound', key, val, function(asset) {
+                   ct++;
+                   if(callback != undefined && ct >= ln) callback();
+                   if(progress)progress(ct, ln);
+                });
+                ln++;
+            });
+        }
     },
     loadAsset: function(type, name, src, callback) {
       var self = this;
@@ -1350,26 +1404,27 @@ def('Jxl.AssetManager', {
       }
       switch(type) {
         case 'audio':
-        case 'sound': //fiiiiix meeeeee
+        case 'sound': 
             var temp = new Audio(src);
             temp.src = src;
             temp.load();
             this.assets[name] = temp;
-            Jxl.Audio.add(name, temp);
+            Jxl.audio.add(name, temp);
             if(callback) callback(temp);
             break;
         case 'image':
             var temp = document.createElement('img');
             temp.src = src;
-            this.assets[name] = temp;
-            temp.onload = function() {
+            temp.addEventListener('load', function() {
                 var can = document.createElement('canvas');
                 can.width = this.width;
                 can.height = this.height;
                 var ctx = can.getContext('2d');
                 ctx.drawImage(this, 0, 0);
+                self.assets[name] = can;
                 if(callback) callback(can);
-            };
+            }, true);
+
         break;
       }
     }
@@ -1385,7 +1440,7 @@ def('Jxl.List', {
 def('Jxl.QuadTree', {
     extend: Jxl.Rect,
     init: function(x, y, width, height, parent) {
-        this.supr.call(this, x, y, width, height);
+        Jxl.Rect.prototype.init.call(this, x, y, width, height);
         this._headA = this._tailA = new Jxl.List();
         this._headB = this._tailB = new Jxl.List();
 
@@ -2002,14 +2057,14 @@ def('Jxl.Util', {
     getAngle: function(x, y) {
         return Math.atan2(y, x) * 180 / Math.PI;
     },
-    computeVelocity: function(time, velocity, acceleration, drag, max) {
+    computeVelocity: function(velocity, acceleration, drag, max) {
         if (acceleration == undefined) acceleration = 0;
         if (drag == undefined) drag = 0;
         if (max == undefined) max = 10000;
 
-        if (acceleration != 0) velocity += acceleration * time;
+        if (acceleration != 0) velocity += acceleration * Jxl.delta;
         else if (drag != 0) {
-            var d = drag * time;
+            var d = drag * Jxl.delta;
             if (velocity - d > 0) velocity -= d;
             else if (velocity + d < 0) velocity += d;
             else velocity = 0;
@@ -2037,20 +2092,317 @@ def('Jxl.Util', {
     }
 });
 
+def('Jxl.Particle', {
+    extend: Jxl.Sprite,
+    init: function(options) {
+        Jxl.Sprite.prototype.init.call(this, params);
+        this._bounce = params.bounce;
+    },
+    hitSide: function(Contact, Velocity) {
+        this.velocity.x = -this.velocity.x * this._bounce;
+        if (this.angularVelocity != 0) this.angularVelocity = -this.angularVelocity * this._bounce;
+    },
+    hitBottom: function(Contact, Velocity) {
+        this.onFloor = true;
+        if (((this.velocity.y > 0) ? this.velocity.y : -this.velocity.y) > this._bounce * 100) {
+            this.velocity.y = -this.velocity.y * this._bounce;
+            if (this.angularVelocity != 0) this.angularVelocity *= -this._bounce;
+        }
+        else {
+            this.angularVelocity = 0;
+            Jxl.Sprite.prototype.hitBottom.call(this, Contact, Velocity);
+        }
+        this.velocity.x *= this._bounce;
+    }
+});
+
+def('Jxl.Emitter', {
+    extend: Jxl.Group,
+    init: function(params) {
+        Jxl.Group.prototype.init.call(this, params);
+        _(this).extend({
+            width: 0,
+            height: 0,
+            minParticleSpeed: new Jxl.Point({
+                x: -100,
+                y: -100
+            }),
+            maxParticleSpeed: new Jxl.Point({
+                x: 100,
+                y: 100
+            }),
+            minRotation: -360,
+            maxRotation: 360,
+            gravity: 400,
+            particleDrag: new Jxl.Point(),
+            delay: 0,
+            quantity: 0,
+            _counter: 0,
+            _explode: true,
+            _particle: 0,
+            exists: false,
+            on: false,
+            justEmitted: false
+        });
+        this.applyParams(params);
+    },
+    createSprites: function(Graphics, Quantity, Dimensions, Multiple, Collide, Bounce) {
+        Quantity = (Quantity == undefined) ? 50 : Quantity;
+        Dimensions = (Dimensions === undefined) ? new JxlPoint(Graphics.width, Graphics.height) : Dimensions;
+        Multiple = (Multiple === undefined) ? true : Multiple;
+        Collide = (Collide == undefined) ? 0 : Collide;
+        Bounce = (Bounce == undefined) ? 0 : Bounce;
+
+        this.members = new Array();
+        var r;
+        var s;
+        var tf = 1;
+        var sw;
+        var sh;
+        if (Multiple) {
+            s = new Jxl.Sprite().loadGraphic({graphic:Graphics, animated:true, width: Dimensions.x, height:Dimensions.y});
+            tf = s.frames;
+        }
+        var i = 0;
+        while (i < Quantity) {
+            if ((Collide) && (Bounce > 0)) s = new Jxl.Particle({
+                bounce: Bounce
+            });
+            else s = new Jxl.Sprite();
+
+            if (Multiple) {
+                r = Math.random() * tf;
+                s.loadGraphic({graphic:Graphics, animated:true, width: Dimensions.x, height:Dimensions.y});
+                s.frame = r;
+            }
+            else {
+                s.loadGraphic({graphic:Graphics});
+            }
+            if (Collide > 0) {
+                sw = s.width;
+                sh = s.height;
+                s.width *= Collide;
+                s.height *= Collide;
+                s.offset.x = (sw - s.width) / 2;
+                s.offset.y = (sh - s.height) / 2;
+                s.solid = true;
+            }
+            else s.solid = false;
+            s.exists = false;
+            this.add(s);
+            i++;
+        }
+        return this;
+    },
+    setSize: function(Width, Height) {
+        this.width = Width;
+        this.height = Height;
+    },
+    setXSpeed: function(Min, Max) {
+        Min = (Min == undefined) ? 0 : Min;
+        Max = (Max == undefined) ? 0 : Max;
+
+        this.minParticleSpeed.x = Min;
+        this.maxParticleSpeed.x = Max;
+    },
+    setYSpeed: function(Min, Max) {
+        Min = (Min == undefined) ? 0 : Min;
+        Max = (Max == undefined) ? 0 : Max;
+
+        this.minParticleSpeed.y = Min;
+        this.maxParticleSpeed.y = Max;
+    },
+    setRotation: function(Min, Max) {
+        Min = (Min == undefined) ? 0 : Min;
+        Max = (Max == undefined) ? 0 : Max;
+
+        this.minRotation = Min;
+        this.maxRotation = Max;
+    },
+    updateEmitter: function() {
+        if (this._explode) {
+            this._timer += Jxl.delta;
+            if ((this.delay > 0) && (this._timer > this.delay)) {
+                this.kill();
+                return;
+            }
+            if (this.on) {
+                this.on = false;
+                var i = this._particle;
+                var l = this.members.length;
+                if (this.quantity > 0) l = this.quantity;
+                l += this._particle;
+                while (i < l) {
+                    this.emitParticle();
+                    i++;
+                }
+            }
+            return;
+        }
+        if (!this.on) return;
+        this._timer += Jxl.delta;
+        while ((this._timer > this.delay) && ((this.quantity <= 0) || (this._counter < this.quantity))) {
+            this._timer -= this.delay;
+            this.emitParticle();
+        }
+    },
+    updateMembers: function() {
+        var o;
+        var i = 0;
+        var l = this.members.length;
+        while (i < l) {
+            o = this.members[i++];
+            if ((o !== undefined && o !== null) && o.exists && o.active) o.update();
+        }
+    },
+    update: function() {
+        this.justEmitted = false;
+        Jxl.Group.prototype.update.call(this);
+        this.updateEmitter();
+    },
+    start: function(Explode, Delay, Quantity) {
+        Explode = (Explode === undefined) ? true : Explode;
+        Delay = isNaN(Delay) ? 0 : Delay;
+        Quantity = (Quantity == undefined) ? 0 : Quantity;
+
+        if (this.members.length <= 0) {
+            return this;
+        }
+        this._explode = Explode;
+        if (!this._explode) this._counter = 0;
+        if (!this.exists) this._particle = 0;
+        this.exists = true;
+        this.visible = true;
+        this.active = true;
+        this.dead = false;
+        this.on = true;
+        this._timer = 0;
+        if (this.quantity == 0) this.quantity = Quantity;
+        else if (Quantity != 0) this.quantity = Quantity;
+        if (Delay != 0) this.delay = Delay;
+        if (this.delay < 0) this.delay = -this.delay;
+        if (this.delay == 0) {
+            if (Explode) this.delay = 3; //default value for particle explosions
+            else this.delay = 0.1; //default value for particle streams
+        }
+        return this;
+    },
+    emitParticle: function() {
+        this._counter++;
+        var s = this.members[this._particle];
+        s.visible = true;
+        s.exists = true;
+        s.active = true;
+        s.x = this.x - (s.width >> 1) + Math.random() * this.width;
+        s.y = this.y - (s.height >> 1) + Math.random() * this.height;
+        s.velocity.x = this.minParticleSpeed.x;
+        if (this.minParticleSpeed.x != this.maxParticleSpeed.x) s.velocity.x += Math.random() * (this.maxParticleSpeed.x - this.minParticleSpeed.x);
+        s.velocity.y = this.minParticleSpeed.y;
+        if (this.minParticleSpeed.y != this.maxParticleSpeed.y) s.velocity.y += Math.random() * (this.maxParticleSpeed.y - this.minParticleSpeed.y);
+        s.acceleration.y = this.gravity;
+        s.angularVelocity = this.minRotation;
+        if (this.minRotation != this.maxRotation) s.angularVelocity += Math.random() * (this.maxRotation - this.minRotation);
+        if (s.angularVelocity != 0) s.angle = Math.random() * 360 - 180;
+        s.drag.x = this.particleDrag.x;
+        s.drag.y = this.particleDrag.y;
+        this._particle++;
+        if (this._particle >= this.members.length) this._particle = 0;
+        s.onEmit();
+        this.justEmitted = true;
+    },
+    stop: function(Delay) {
+        Delay = (Delay == undefined) ? 3 : Delay;
+
+        this._explode = true;
+        this.delay = Delay;
+        if (this.delay < 0) this.delay = -Delay;
+        this.on = false;
+    },
+    at: function(Obj) {
+        Obj.resetHelpers();
+        this.x = Obj.x + Obj.origin.x;
+        this.y = Obj.y + Obj.origin.y;
+    },
+    kill: function() {
+        Jxl.Group.prototype.kill.call(this);
+        this.on = false;
+    },
+    render: function() {
+        Jxl.Group.prototype.render.call(this);
+    }
+});
 def('Jxl.Mouse', {
     extend: Jxl.Object,
     init: function() {
         Jxl.Object.prototype.init.call(this);
         var self = this;
-        Jxl.canvas.onmousemove = function(e) {
+        Jxl.canvas.addEventListener('mousemove', function(e) {
             self.x = e.x/Jxl.scale;
             self.y = e.y/Jxl.scale;
-        };
-        Jxl.canvas.onclick = function(e) {
-            
-        };
+        }, true);
+        Jxl.canvas.addEventListener('click', function(e) {
+            //collide with objects.. set special flag about type of click
+            console.log([self.x, self.y]);
+        }, true);
+        Jxl.canvas.addEventListener('contextmenu', function(e){
+            console.log([self.x, self.y]);
+            if(e.preventDefault)
+                e.preventDefault();
+            else
+                e.returnValue= false;
+            return false;
+        }, true);
+        _(this).extend({
+            scrollFactor: new Jxl.Point({x: 0, y: 0}),
+        });
     },
-    scrollFactor: new Jxl.Point({x: 0, y: 0}),
     width: 1,
     height: 1
+});
+def('Jxl.Keyboard', {
+    init: function() {
+        var self = this;
+        window.addEventListener('keydown', function(e) {
+            self.keys[String.fromCharCode(e.keyCode)] = true;
+            self.keys[e.keyCode] = true;
+            if(!(e.keyCode in self.pressed)) {
+                self.pressed[String.fromCharCode(e.keyCode)] = true;
+                self.pressed[e.keyCode] = true;
+            }   
+        }, true);
+        window.addEventListener('keyup', function(e) {
+            delete self.keys[e.keyCode];
+            delete self.keys[String.fromCharCode(e.keyCode)];
+            delete self.pressed[String.fromCharCode(e.keyCode)];
+            delete self.pressed[e.keyCode];
+        }, true);
+
+        document.body.addEventListener('touchstart', function(e) {
+            self.touch = true;
+            self.touchPress = true;
+            e.preventDefault();
+        }, true);
+        document.body.addEventListener('touchstop', function(e) {
+            self.touch = false;
+            e.preventDefault();
+        }, true);
+        
+    },
+    touch: false,
+    touchPress: false,
+    pressed: {},
+    keys: {},
+    on: function(key) {
+        return this.keys[key];
+    },
+    press: function(key) {
+        return this.pressed[key];
+    },
+    update: function() {
+        var self = this;
+        _(this.pressed).each(function(val, key) {
+            self.pressed[key] = false; 
+        });
+        self.touchPress = false;
+    }
 });

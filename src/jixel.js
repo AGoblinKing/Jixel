@@ -5,31 +5,30 @@ def('Jxl', {
         var self = this;
         width = (config.width === undefined) ? 240 : config.width;
         height = (config.height === undefined) ? 160 : config.height;
-        self.state = new Jxl.State();
-        self.canvas = (config.canvas !== undefined) ? config.canvas : new Element('canvas');
+        self.canvas = (config.canvas !== undefined) ? config.canvas : document.createElement('canvas');
+        self.canvasCTX = self.canvas.getContext('2d');
+        self.bufferCVS = document.createElement('canvas');
         self.buffer = self.canvas.getContext('2d');
-        self.scale = 1;
+        self.scale = (config.scale === undefined) ? 1 : config.scale;
+        self.setScale(self.scale);
         self.showBB = false;
-        self.autoPause = true;
         self._width(width);
+        self.state = new Jxl.State();
+        self.audio = new Jxl.Audio();
         self.mouse = new Jxl.Mouse();
+        self.keys = new Jxl.Keyboard();
         self._height(height);
         self.refresh = 16;
         self.running = false;
+        self.delta = 0;
         self.fullScreen = false;
         self.keepResolution = false;
         self.date = new Date();
         self._scrollTarget = new Jxl.Point();
         self.unfollow();
+        self.scroll = new Jxl.Point();
         self.renderedFrames = 0;
         Jxl.Util.setWorldBounds(0,0,this.width, this.height);
-    },
-    toggleFPS: function() {
-        if(!this._showFPS) {
-            this.showFPS();
-        } else {
-            this.hideFPS();
-        }
     },
     follow: function(target, lerp) { 
         if(lerp == undefined) lerp = 1;
@@ -40,9 +39,9 @@ def('Jxl', {
         
         this.scroll.x = this._scrollTarget.x;
         this.scroll.y = this._scrollTarget.y;
-        this.doFollow(0);
+        this.doFollow();
     },
-    doFollow: function(delta) {
+    doFollow: function() {
         if(this.followTarget != null) {
             this._scrollTarget.x = (this.width>>1)-this.followTarget.x-(this.followTarget.width>>1);
             this._scrollTarget.y = (this.height>>1)-this.followTarget.y-(this.followTarget.height>>1);
@@ -50,8 +49,8 @@ def('Jxl', {
                 this._scrollTarget.x -= this.followTarget.velocity.x*this.followLead.x;
                this. _scrollTarget.y -= this.followTarget.velocity.y*this.followLead.y;
             }
-            this.scroll.x += (this._scrollTarget.x-this.scroll.x)*this.followLerp*delta;
-            this.scroll.y += (this._scrollTarget.y-this.scroll.y)*this.followLerp*delta;
+            this.scroll.x += (this._scrollTarget.x-this.scroll.x)*this.followLerp*Jxl.delta;
+            this.scroll.y += (this._scrollTarget.y-this.scroll.y)*this.followLerp*Jxl.delta;
             if(this.followMin != null) {
                 if(this.scroll.x > this.followMin.x)
                     this.scroll.x = this.followMin.x;
@@ -84,13 +83,15 @@ def('Jxl', {
     _width: function(width) {
         if(width != undefined) {
             this.screenWidth(width*this.scale);
-            this.width = width;
+            this.bufferCVS.width = width;
+            this.width = Math.floor(width);
         }
     },
     _height: function(height) {
         if(height != undefined) {
+            this.bufferCVS.height = height;
             this.screenHeight(height*this.scale);
-            this.height = height;
+            this.height = Math.floor(height);
         }
     },
     unpause: function() {
@@ -111,7 +112,7 @@ def('Jxl', {
     },
     screenWidth: function(width) {
         if(width != undefined) {
-            this.canvas.width = width; 
+            this.canvas.width = width;
         }
         return this.canvas.width; 
     },
@@ -138,7 +139,7 @@ def('Jxl', {
             }, this.refresh);
         }
     },
-    changeScale: function(scale) {
+    setScale: function(scale) {
         this.scale = scale;
         this._width(this.width);
         this._height(this.height);
@@ -150,7 +151,8 @@ def('Jxl', {
         this.state.preProcess();
         this.state.render();
         this.mouse.render();
+        this.keys.update();
+        this.audio.update();
         this.state.postProcess();
-    },
-    click: function() {}
+    }
 });

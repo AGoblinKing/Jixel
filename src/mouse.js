@@ -3,15 +3,26 @@ def('Jxl.Mouse', {
     init: function() {
         Jxl.Object.prototype.init.call(this);
         var self = this;
-        Jxl.canvas.onmousemove = function(e) {
+        Jxl.canvas.addEventListener('mousemove', function(e) {
             self.x = e.x/Jxl.scale;
             self.y = e.y/Jxl.scale;
-        };
-        Jxl.canvas.onclick = function(e) {
-            
-        };
+        }, true);
+        Jxl.canvas.addEventListener('click', function(e) {
+            //collide with objects.. set special flag about type of click
+            console.log([self.x, self.y]);
+        }, true);
+        Jxl.canvas.addEventListener('contextmenu', function(e){
+            console.log([self.x, self.y]);
+            if(e.preventDefault)
+                e.preventDefault();
+            else
+                e.returnValue= false;
+            return false;
+        }, true);
+        _(this).extend({
+            scrollFactor: new Jxl.Point({x: 0, y: 0}),
+        });
     },
-    scrollFactor: new Jxl.Point({x: 0, y: 0}),
     width: 1,
     height: 1
 });

@@ -1,12 +1,15 @@
 def('Jxl.Group', {
     extend: Jxl.Object,
-    _group: true,
-    solid: false,
-    members: [],
-    _last: new Jxl.Point(),
-    _first: true,
     init: function(params) {
         Jxl.Object.prototype.init.call(this, params);
+        _(this).extend({
+            _group: true,
+            solid: false,
+            members: [],
+            _last: new Jxl.Point(),
+            _first: true
+        });
+        this.applyParams(params);
     },
     statics: {
         ASCENDING: -1,
@@ -223,7 +226,7 @@ def('Jxl.Group', {
     },
     kill: function() {
         this.killMembers();
-        this.parent();
+        Jxl.Object.prototype.kill.call(this);
     },
     destroyMembers: function() {
         var i = 0;

@@ -1,31 +1,34 @@
 def('Jxl.TileMap', {
     extend: Jxl.Object,
-    init: function(options) {
-        this.prototype.supr.call(this, options);
+    init: function(params) {
+        Jxl.Object.prototype.init.call(this, params);
+        _(this).extend({
+            auto: Jxl.TileMapOFF,
+            collideIndex: 1,
+            startingIndex: 0,
+            drawIndex: 1,
+            widthInTiles: 0,
+            heightInTiles: 0,
+            totalTiles: 0,
+            _buffer: null,
+            _bufferLoc: new Jxl.Point(),
+            _flashRect2: new Jxl.Rect(),
+            _flashRect: new Jxl.Rect(),
+            _data: null,
+            _tileWidth: 0,
+            _tileHeight: 0,
+            _rects: null,
+            _pixels: null,
+            _block: new Jxl.Object({
+                width: 0,
+                height: 0,
+                fixed: true
+            }),
+            _callbacks: new Array(),
+            fixed: true
+       });
+       this.applyParams(params);
     },
-    auto: Jxl.TileMapOFF,
-    collideIndex: 1,
-    startingIndex: 0,
-    drawIndex: 1,
-    widthInTiles: 0,
-    heightInTiles: 0,
-    totalTiles: 0,
-    _buffer: null,
-    _bufferLoc: new Jxl.Point(),
-    _flashRect2: new Jxl.Rect(),
-    _flashRect: new Jxl.Rect(),
-    _data: null,
-    _tileWidth: 0,
-    _tileHeight: 0,
-    _rects: null,
-    _pixels: null,
-    _block: new Jxl.Object({
-        width: 0,
-        height: 0,
-        fixed: true
-    }),
-    _callbacks: new Array(),
-    fixed: true,
     loadMap: function(MapData, TileGraphic, TileWidth, TileHeight) {
         var c, cols, rows = MapData.split("\n");
         this.heightInTiles = rows.length;
@@ -76,7 +79,7 @@ def('Jxl.TileMap', {
         return this;
     },
     render: function() {
-        this._point = this.getScreenXY(Jxl, this._point);
+        this._point = this.getScreenXY(this._point);
         var _flashPoint = new Jxl.Point({
             x: this._point.x,
             y: this._point.y

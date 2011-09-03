@@ -1,10 +1,10 @@
 def('Jxl.State', {
-    init: function(options) {
-        _(this).extend(options);
-	    this.create();
+    init: function(params) {
+        _(this).extend({
+            defaultGroup: new Jxl.Group()
+        });
+        _(this).extend(params);
     },
-	defaultGroup: new Jxl.Group(),
-    create: function() {},
     add: function(object) {
         return this.defaultGroup.add(object);
     },
@@ -12,7 +12,7 @@ def('Jxl.State', {
 	    this.defaultGroup.remove(object);
     },
     preProcess: function() {
-        Jxl.buffer.clearRect(0,0, Jxl.screenWidth(), Jxl.screenHeight());
+        Jxl.buffer.clearRect(0,0, Jxl.width, Jxl.height);
     },
     update: function() {
         this.defaultGroup.update();
