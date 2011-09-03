@@ -23,10 +23,10 @@ function pack(obj, basedir) {
         rs += '\r\n'+fs.readFileSync(basedir + obj + '.js');
     });
     fs.writeFile(__dirname + '/jixel.js', rs);
-    /*
+    
     var ast = jsp.parse(rs);
     ast = pro.ast_mangle(ast);
     ast = pro.ast_squeeze(ast);
-    fs.writeFile(__dirname + '/jixel.compressed.js', pro.gen_code(ast));*/
+    fs.writeFile(__dirname + '/jixel.compressed.js', pro.gen_code(ast));
     return rs;
 }
