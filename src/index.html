@@ -2,10 +2,12 @@
 <html>
   <head>
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Jixel - Tech Test Example</title>
     <meta name="viewport" content="width=device-width; initial-scale=1; maximum-scale=1; user-scalable=0;"/>
     <link href='http://fonts.googleapis.com/css?family=Geo' rel='stylesheet' type='text/css'/>
     <script type="text/javascript" src="../../jixel.js"></script>
     <script type="text/javascript" src="src/Cat.js"></script>
+    <script type="text/javascript" src="src/Cloud.js"></script>
     <script type="text/javascript" src="src/GameState.js"></script>
     <script type="text/javascript">
       window.addEventListener('load', function(){
@@ -24,7 +26,7 @@
             }
         };
         Jxl.am.load(assets, function() {
-            Jxl.state = new TWH.GameState();
+            Jxl.state = new GameState();
             Jxl.start();    
         });
       }, true);

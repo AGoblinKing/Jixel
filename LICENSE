@@ -27,7 +27,10 @@ NOTE FROM THE AUTHOR/PORTER OF JIXEL:
 You are distributing your source code every time someone plays
 your game. You should probably bundle this LICENSE file with
 your game somehow. I can't remove the above copywrite notice due 
-to this being a port of Flixel.
+to this being a port of Flixel. 
+
+NOTE ABOUT THE TOOLS.
+The Jixel Tools pretty much all use ExtJS, meaning they have a GPL License. 
 
 
 

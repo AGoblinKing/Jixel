@@ -1,4 +1,4 @@
-def('Cat', {
+def('TWH.Cat', {
     extend: Jxl.Sprite,
     init: function(graphic, x, y) {
         Jxl.Sprite.prototype.init.call(this, {graphic:graphic, x:x, y:y, width:32, height:32});
