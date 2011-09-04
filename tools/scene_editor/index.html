@@ -4,10 +4,16 @@
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
     <meta name="viewport" content="width=device-width; initial-scale=1; maximum-scale=1; user-scalable=0;"/>
     <link href='http://fonts.googleapis.com/css?family=Geo' rel='stylesheet' type='text/css'/>
+    <link href='resources/css/ext-all.css' rel='stylesheet' type='text/css'/>
+    <script type="text/javascript" src="lib/ext-all.js"></script>
     <script type="text/javascript" src="../../jixel.js"></script>
+    <script type="text/javascript" src="src/InfoPanel.js"></script>
+    <script type="text/javascript" src="src/MenuBar.js"></script>
+    <script type="text/javascript" src="src/GamePanel.js"></script>
+    <script type="text/javascript" src="src/HomePage.js"></script>
     <script type="text/javascript"> 
-        $(function() {
-            $("h1").html('RAWRAWRA');
+        Ext.onReady(function() {
+            Ext.create('SE.Home');
         });
     </script>
     <style type="text/css">
@@ -22,6 +28,6 @@
     </style>
   </head>
   <body>
-        <h1>Test</h1>
+        
   </body>
 </html>
