@@ -25,7 +25,10 @@ Ext.define('SE.Project', {
                         menu: [{
                             text: 'Scene',
                             handler: function() {
-                                alert('!!');
+                                record.appendChild({
+                                    text: 'New Scene',
+                                    leaf: true
+                                });
                             }
                         }, {
                             text: 'TileMap'
