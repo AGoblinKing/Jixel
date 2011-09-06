@@ -4,12 +4,14 @@ def('Jxl.Keyboard', {
         window.addEventListener('keydown', function(e) {
             self.keys[String.fromCharCode(e.keyCode)] = true;
             self.keys[e.keyCode] = true;
+            e.preventDefault();
             if(!(e.keyCode in self.pressed)) {
                 self.pressed[String.fromCharCode(e.keyCode)] = true;
                 self.pressed[e.keyCode] = true;
             }   
         }, true);
         window.addEventListener('keyup', function(e) {
+            e.preventDefault();
             delete self.keys[e.keyCode];
             delete self.keys[String.fromCharCode(e.keyCode)];
             delete self.pressed[String.fromCharCode(e.keyCode)];
