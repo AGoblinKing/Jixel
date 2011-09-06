@@ -13,8 +13,9 @@ You'll want to use the Flixel documentation and look at the example projects. Ad
 
 DEMOS
 -----
-http://whenraptorsattack.github.com/Jixel/examples/TheWayHome/index.html
-http://whenraptorsattack.github.com/Jixel/examples/techtest/index.html
+http://whenraptorsattack.github.com/Jixel/examples/TheWayHome/index.html 
+http://whenraptorsattack.github.com/Jixel/examples/techtest/index.html 
+
 
 
 
