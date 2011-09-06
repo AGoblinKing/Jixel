@@ -3302,12 +3302,11 @@ def('Jxl.Mouse', {
         Jxl.Object.prototype.init.call(this);
         var self = this;
         Jxl.canvas.addEventListener('mousemove', function(e) {
-            self.x = e.x/Jxl.scale;
-            self.y = e.y/Jxl.scale;
+            self.x = e.x/Jxl.scale.x;
+            self.y = e.y/Jxl.scale.x;
         }, true);
         Jxl.canvas.addEventListener('click', function(e) {
             //collide with objects.. set special flag about type of click
-            console.log([self.x, self.y]);
         }, true);
         Jxl.canvas.addEventListener('contextmenu', function(e){
             console.log([self.x, self.y]);
@@ -3324,6 +3323,7 @@ def('Jxl.Mouse', {
     width: 1,
     height: 1
 });
+
 def('Jxl.Keyboard', {
     init: function() {
         var self = this;

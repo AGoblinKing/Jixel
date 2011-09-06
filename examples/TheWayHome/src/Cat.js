@@ -28,10 +28,16 @@ def('TWH.Cat', {
              this.play('idle');
         }
         if((Jxl.keys.press(32) || Jxl.keys.touchPress) && this.onFloor) {
+            this.jumped = true;
             this.velocity.y = -180;
             this.velocity.x += (this.reverse ? 1 : -1) * this.speed;
             Jxl.audio.play('jump');
-        } 
+        }
+        if(!Jxl.keys.on(32) && this.jumped && this.velocity.y < -50) {
+            this.velocity.y = -50;
+            this.jumped = false;
+        }
+        
         this.delta += Jxl.delta;
         Jxl.Sprite.prototype.update.call(this);
     }
