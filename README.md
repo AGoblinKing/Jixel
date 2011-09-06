@@ -13,10 +13,8 @@ You'll want to use the Flixel documentation and look at the example projects. Ad
 
 DEMOS
 -----
-Desktop:
-http://www.jixel.org/Jixel-Demo
+http://whenraptorsattack.github.com/Jixel/examples/TheWayHome/index.html
+http://whenraptorsattack.github.com/Jixel/examples/techtest/index.html
 
-Mobile:
-http://www.jixel.org/jx
 
 
