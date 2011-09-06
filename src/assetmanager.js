@@ -42,6 +42,16 @@ def('Jxl.AssetManager', {
                 ln++;
             });
         }
+        if(assets.data) {
+           _(assets.data).each(function(val, key) {
+                self.loadAsset('data', key, val, function(asset) {
+                    ct++;
+                    if(callback != undefined && ct >= ln) callback();
+                    if(progress)progress(ct, ln);
+                });
+                ln++;
+           });
+        }
     },
     loadAsset: function(type, name, src, callback) {
       var self = this;
@@ -71,8 +81,17 @@ def('Jxl.AssetManager', {
                 self.assets[name] = can;
                 if(callback) callback(can);
             }, true);
-
         break;
+        case 'data':
+            var xmlHTTP = new XMLHttpRequest();
+            xmlHTTP.onreadystatechange = function() {
+                if(xmlHTTP.readyState == 4 && xmlHTTP.status==200) {
+                    self.assets[name] = xmlHTTP.responseText;
+                    if(callback) callback(xmlHTTP.responseText);
+                }
+            }
+            xmlHTTP.open("GET", src, true);
+            xmlHTTP.send();
       }
     }
 });

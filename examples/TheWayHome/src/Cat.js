@@ -10,9 +10,12 @@ def('TWH.Cat', {
         _(this).extend({
             delta: 0
         });
-        this.acceleration.y = 100;
+        this.acceleration.y = 200;
     },
     update: function() {
+        if(this.y > 900) {
+            //explode!
+        }
         if (Jxl.keys.on('A')) {
              this.velocity.x = this.speed;
              this.reverse = true;
@@ -24,10 +27,10 @@ def('TWH.Cat', {
         } else {
              this.play('idle');
         }
-        if(Jxl.keys.press(32) || Jxl.keys.touchPress) {
-            this.velocity.y = -100;
+        if((Jxl.keys.press(32) || Jxl.keys.touchPress) && this.onFloor) {
+            this.velocity.y = -180;
+            this.velocity.x += (this.reverse ? 1 : -1) * this.speed;
             Jxl.audio.play('jump');
-            Jxl.state.explode(this);
         } 
         this.delta += Jxl.delta;
         Jxl.Sprite.prototype.update.call(this);

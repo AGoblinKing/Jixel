@@ -5,6 +5,7 @@ def('Jxl.TileMap', {
         _(this).extend({
             auto: Jxl.TileMapOFF,
             collideIndex: 1,
+            noCollide: {},
             startingIndex: 0,
             drawIndex: 1,
             widthInTiles: 0,
@@ -54,7 +55,7 @@ def('Jxl.TileMap', {
             if (this.auto > Jxl.TileMapOFF) {
                 this.collideIndex = this.startingIndex = this.drawIndex = 1;
                 i = 0;
-                while (i < this.totalTiles)
+                while (i < this.totalTiles)c
                 this.autoTile(i++);
             }
     
@@ -167,7 +168,7 @@ def('Jxl.TileMap', {
             while (c < iw) {
                 if (c >= this.widthInTiles) break;
                 dd = Math.floor(this._data[d + c]);
-                if (dd >= this.collideIndex) {
+                if (dd >= this.collideIndex && !(dd in this.noCollide)) {
                     blocks.push({
                         x: this.x + (ix + c) * this._tileWidth,
                         y: this.y + (iy + r) * this._tileHeight,
@@ -241,7 +242,7 @@ def('Jxl.TileMap', {
     overlapsPoint: function(X, Y, PerPixel) {
         var t = getTile(
         Math.floor((X - this.x) / this._tileWidth), Math.floor((Y - this.y) / this._tileHeight));
-        return t >= this.collideIndex;
+        return (t >= this.collideIndex && !(t in this.noCollide));
     },
     refreshHulls: function() {
         this.colHullX.x = 0;
@@ -256,6 +257,7 @@ def('Jxl.TileMap', {
     preCollide: function(Obj) {
         var r;
         var c;
+        var cp;
         var rs;
         var col = 0;
         var ix = Math.floor((Obj.x - this.x) / this._tileWidth);
@@ -271,7 +273,8 @@ def('Jxl.TileMap', {
         r = iy;
         for (r = iy; r < ih; r++) {
             for (c = ix; c < iw; c++) {
-                if (Math.floor(Math.abs(this._data[rs + c])) >= this.collideIndex) this.colOffsets[col++] = new Jxl.Point({
+                cp = Math.floor(Math.abs(this._data[rs + c])) ;
+                if (cp >= this.collideIndex && !(cp in this.noCollide) ) this.colOffsets[col++] = new Jxl.Point({
                     x: this.x + c * this._tileWidth,
                     y: this.y + r * this._tileHeight
                 });
@@ -297,6 +300,7 @@ def('Jxl.TileMap', {
         var curY = StartY - stepY;
         var tx;
         var ty;
+        var cp;
         var i = 0;
         while (i < steps) {
             curX += stepX;
@@ -309,7 +313,8 @@ def('Jxl.TileMap', {
 
             tx = curX / this._tileWidth;
             ty = curY / this._tileHeight;
-            if ((Math.floor(this._data[ty * this.widthInTiles + tx])) >= this.collideIndex) {
+            cp = (Math.floor(this._data[ty * this.widthInTiles + tx]));
+            if (cp >= this.collideIndex && !(cp in this.noCollide)) {
                 //Some basic helper stuff
                 tx *= this._tileWidth;
                 ty *= this._tileHeight;

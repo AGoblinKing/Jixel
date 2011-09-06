@@ -644,6 +644,9 @@ def('Jxl.Util', {
         }
         return velocity;
     },
+    range: function(min, max) {
+        return Math.random()*(Math.abs(min)+max)-Math.abs(min);
+    },
     setWorldBounds: function(X, Y, Width, Height, Divisions) {
         //Set default values for optional parameters
         X = ((X == undefined)) ? 0 : X;

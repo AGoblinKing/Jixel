@@ -19,7 +19,8 @@ server.use(connect.router(function(app) {
 }));
 server.use(connect.static(__dirname + '/'));
 
-server.listen(process.env.C9_PORT);
+var port = process.env.C9_PORT != undefined ? process.env.C9_PORT : '8080';
+server.listen(port);
 
 var fs = require('fs');
 

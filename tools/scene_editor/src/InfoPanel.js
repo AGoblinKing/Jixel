@@ -1,13 +1,27 @@
 Ext.define('SE.InfoPanel', {
-    extend: 'Ext.tab.Panel',
+    extend: 'Ext.panel.Panel',
     alias: 'widget.seInfo',
     width: 300,
     resizeable: true,
     dockable: true,
+    layout: {
+        type: 'vbox',
+        align: 'stretch'
+    },
     items: [{
         title: 'Project',
         xtype: 'seProject'
+    }, {
+        xtype: 'seInfoView'
     }]
+});
+
+Ext.define('SE.InfoView', {
+    extend: 'Ext.panel.Panel',
+    alias: 'widget.seInfoView',
+    id: 'infoPanel',
+    flex: 1,
+    title: 'Info'
 });
 
 Ext.define('SE.Project', {
@@ -31,7 +45,11 @@ Ext.define('SE.Project', {
                                 });
                             }
                         }, {
-                            text: 'TileMap'
+                            text: 'TileMap',
+                            handler: function() {
+                                record.appendChild(SE.TileMap);
+                                view.forceComponentLayout();
+                            }
                         }, {
                             text: 'Sprite'
                         }, {
@@ -65,18 +83,20 @@ Ext.define('SE.ProjectPanel', {
         store: SE.Project,
         flex:1,
         listeners: {
-            'itemclick': function(view, record) {
-                if(record.raw.click != undefined) record.raw.click(view, record, item);
+            'itemclick': function(view, record, item) {
+                if(record.data.click != undefined) record.data.click(view, record, item);
+                if(record.raw && record.raw.click != undefined) record.raw.click(view, record, item);
             },
             'itemcontextmenu': {
                 fn: function(view, record, item, index, e) {
-                    if(record.raw.ctx != undefined) record.raw.ctx(view, record, item);
+                    if(record.data.ctx != undefined) record.data.ctx(view, record, item);
+                    if(record.raw && record.raw.ctx != undefined) record.raw.ctx(view, record, item);
                     e.preventDefault();
                 }
             }
         }
     }],
-    height: "100%",
+    flex:1,
     layout: {
         type: 'vbox',
         align: 'stretch'

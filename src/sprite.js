@@ -40,7 +40,7 @@ def('Jxl.Sprite', {
         this.bufferCTX.translate(-this.width, 0); 
     },
     calcFrame: function() {
-        this.buffer.width = this.width
+        this.buffer.width = this.width;
         this.bufferCTX.clearRect(0, 0, this.width, this.height);
         var rx = this._curFrame * this.width;
         var ry = 0;
@@ -52,7 +52,7 @@ def('Jxl.Sprite', {
         this.bufferCTX.drawImage(this.graphic, rx, ry, this.width, this.height, 0, 0, this.width, this.height);
     },
     // Rotations are stored on the fly instead of prebaked since they are cheaper here than in flixel.
-    render: function(){
+    render: function() {
         if(!this.visible) return;
         if(this.animated || this.reverse) this.calcFrame();
         var rCan = this.buffer;
@@ -65,10 +65,10 @@ def('Jxl.Sprite', {
             Jxl.buffer.translate(this.rotPoint.x, this.rotPoint.y);
             Jxl.buffer.rotate(this.angle*Math.PI/180);
             Jxl.buffer.translate(-this.rotPoint.x, -this.rotPoint.y);
-            Jxl.buffer.drawImage(rCan, this._point.x, this._point.y, this.width, this.height);    
+            Jxl.buffer.drawImage(rCan, this._point.x, this._point.y, this.width*this.scale.x, this.height*this.scale.y);    
             Jxl.buffer.restore();
         } else {
-             Jxl.buffer.drawImage(rCan, this._point.x, this._point.y, this.width, this.height);
+             Jxl.buffer.drawImage(rCan, this._point.x, this._point.y, this.width*this.scale.x, this.height*this.scale.y);
         }
         
     },
@@ -90,7 +90,7 @@ def('Jxl.Sprite', {
         }
     },
     animationComplete: function(name, isLooped) {},
-    addAnimation: function(name, frames, frameRate, looped ){
+    addAnimation: function(name, frames, frameRate, looped ) {
         if(frameRate == undefined)
             frameRate = 0;
         if(looped == undefined)

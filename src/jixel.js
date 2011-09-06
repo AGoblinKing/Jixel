@@ -6,11 +6,12 @@ def('Jxl', {
         width = (config.width === undefined) ? 240 : config.width;
         height = (config.height === undefined) ? 160 : config.height;
         self.canvas = (config.canvas !== undefined) ? config.canvas : document.createElement('canvas');
-        self.canvasCTX = self.canvas.getContext('2d');
-        self.bufferCVS = document.createElement('canvas');
+        if(config.scale !== undefined) {
+            self.setScale(config.scale);
+        } else {
+            self.setScale(new Jxl.Point({x:1,y:1}));
+        }
         self.buffer = self.canvas.getContext('2d');
-        self.scale = (config.scale === undefined) ? 1 : config.scale;
-        self.setScale(self.scale);
         self.showBB = false;
         self._width(width);
         self.state = new Jxl.State();
@@ -47,7 +48,7 @@ def('Jxl', {
             this._scrollTarget.y = (this.height>>1)-this.followTarget.y-(this.followTarget.height>>1);
             if((this.followLead != null)){
                 this._scrollTarget.x -= this.followTarget.velocity.x*this.followLead.x;
-               this. _scrollTarget.y -= this.followTarget.velocity.y*this.followLead.y;
+                this. _scrollTarget.y -= this.followTarget.velocity.y*this.followLead.y;
             }
             this.scroll.x += (this._scrollTarget.x-this.scroll.x)*this.followLerp*Jxl.delta;
             this.scroll.y += (this._scrollTarget.y-this.scroll.y)*this.followLerp*Jxl.delta;
@@ -82,15 +83,13 @@ def('Jxl', {
     },
     _width: function(width) {
         if(width != undefined) {
-            this.screenWidth(width*this.scale);
-            this.bufferCVS.width = width;
+            this.screenWidth(width*this.scale.x);
             this.width = Math.floor(width);
         }
     },
     _height: function(height) {
         if(height != undefined) {
-            this.bufferCVS.height = height;
-            this.screenHeight(height*this.scale);
+            this.screenHeight(height*this.scale.y);
             this.height = Math.floor(height);
         }
     },

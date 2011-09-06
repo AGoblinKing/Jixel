@@ -938,11 +938,12 @@ def('Jxl', {
         width = (config.width === undefined) ? 240 : config.width;
         height = (config.height === undefined) ? 160 : config.height;
         self.canvas = (config.canvas !== undefined) ? config.canvas : document.createElement('canvas');
-        self.canvasCTX = self.canvas.getContext('2d');
-        self.bufferCVS = document.createElement('canvas');
+        if(config.scale !== undefined) {
+            self.setScale(config.scale);
+        } else {
+            self.setScale(new Jxl.Point({x:1,y:1}));
+        }
         self.buffer = self.canvas.getContext('2d');
-        self.scale = (config.scale === undefined) ? 1 : config.scale;
-        self.setScale(self.scale);
         self.showBB = false;
         self._width(width);
         self.state = new Jxl.State();
@@ -979,7 +980,7 @@ def('Jxl', {
             this._scrollTarget.y = (this.height>>1)-this.followTarget.y-(this.followTarget.height>>1);
             if((this.followLead != null)){
                 this._scrollTarget.x -= this.followTarget.velocity.x*this.followLead.x;
-               this. _scrollTarget.y -= this.followTarget.velocity.y*this.followLead.y;
+                this. _scrollTarget.y -= this.followTarget.velocity.y*this.followLead.y;
             }
             this.scroll.x += (this._scrollTarget.x-this.scroll.x)*this.followLerp*Jxl.delta;
             this.scroll.y += (this._scrollTarget.y-this.scroll.y)*this.followLerp*Jxl.delta;
@@ -1014,15 +1015,13 @@ def('Jxl', {
     },
     _width: function(width) {
         if(width != undefined) {
-            this.screenWidth(width*this.scale);
-            this.bufferCVS.width = width;
+            this.screenWidth(width*this.scale.x);
             this.width = Math.floor(width);
         }
     },
     _height: function(height) {
         if(height != undefined) {
-            this.bufferCVS.height = height;
-            this.screenHeight(height*this.scale);
+            this.screenHeight(height*this.scale.y);
             this.height = Math.floor(height);
         }
     },
@@ -1088,6 +1087,7 @@ def('Jxl', {
         this.state.postProcess();
     }
 });
+
 
 /***
  * Represents a single point in space
@@ -1712,7 +1712,7 @@ def('Jxl.Sprite', {
         this.bufferCTX.translate(-this.width, 0); 
     },
     calcFrame: function() {
-        this.buffer.width = this.width
+        this.buffer.width = this.width;
         this.bufferCTX.clearRect(0, 0, this.width, this.height);
         var rx = this._curFrame * this.width;
         var ry = 0;
@@ -1724,7 +1724,7 @@ def('Jxl.Sprite', {
         this.bufferCTX.drawImage(this.graphic, rx, ry, this.width, this.height, 0, 0, this.width, this.height);
     },
     // Rotations are stored on the fly instead of prebaked since they are cheaper here than in flixel.
-    render: function(){
+    render: function() {
         if(!this.visible) return;
         if(this.animated || this.reverse) this.calcFrame();
         var rCan = this.buffer;
@@ -1737,10 +1737,10 @@ def('Jxl.Sprite', {
             Jxl.buffer.translate(this.rotPoint.x, this.rotPoint.y);
             Jxl.buffer.rotate(this.angle*Math.PI/180);
             Jxl.buffer.translate(-this.rotPoint.x, -this.rotPoint.y);
-            Jxl.buffer.drawImage(rCan, this._point.x, this._point.y, this.width, this.height);    
+            Jxl.buffer.drawImage(rCan, this._point.x, this._point.y, this.width*this.scale.x, this.height*this.scale.y);    
             Jxl.buffer.restore();
         } else {
-             Jxl.buffer.drawImage(rCan, this._point.x, this._point.y, this.width, this.height);
+             Jxl.buffer.drawImage(rCan, this._point.x, this._point.y, this.width*this.scale.x, this.height*this.scale.y);
         }
         
     },
@@ -1762,7 +1762,7 @@ def('Jxl.Sprite', {
         }
     },
     animationComplete: function(name, isLooped) {},
-    addAnimation: function(name, frames, frameRate, looped ){
+    addAnimation: function(name, frames, frameRate, looped ) {
         if(frameRate == undefined)
             frameRate = 0;
         if(looped == undefined)
@@ -1847,6 +1847,7 @@ def('Jxl.Anim', {
         this.looped = looped;
     }
 });
+
 def('Jxl.TileMap', {
     extend: Jxl.Object,
     init: function(params) {
@@ -1854,6 +1855,7 @@ def('Jxl.TileMap', {
         _(this).extend({
             auto: Jxl.TileMapOFF,
             collideIndex: 1,
+            noCollide: {},
             startingIndex: 0,
             drawIndex: 1,
             widthInTiles: 0,
@@ -1903,7 +1905,7 @@ def('Jxl.TileMap', {
             if (this.auto > Jxl.TileMapOFF) {
                 this.collideIndex = this.startingIndex = this.drawIndex = 1;
                 i = 0;
-                while (i < this.totalTiles)
+                while (i < this.totalTiles)c
                 this.autoTile(i++);
             }
     
@@ -2016,7 +2018,7 @@ def('Jxl.TileMap', {
             while (c < iw) {
                 if (c >= this.widthInTiles) break;
                 dd = Math.floor(this._data[d + c]);
-                if (dd >= this.collideIndex) {
+                if (dd >= this.collideIndex && !(dd in this.noCollide)) {
                     blocks.push({
                         x: this.x + (ix + c) * this._tileWidth,
                         y: this.y + (iy + r) * this._tileHeight,
@@ -2090,7 +2092,7 @@ def('Jxl.TileMap', {
     overlapsPoint: function(X, Y, PerPixel) {
         var t = getTile(
         Math.floor((X - this.x) / this._tileWidth), Math.floor((Y - this.y) / this._tileHeight));
-        return t >= this.collideIndex;
+        return (t >= this.collideIndex && !(t in this.noCollide));
     },
     refreshHulls: function() {
         this.colHullX.x = 0;
@@ -2105,6 +2107,7 @@ def('Jxl.TileMap', {
     preCollide: function(Obj) {
         var r;
         var c;
+        var cp;
         var rs;
         var col = 0;
         var ix = Math.floor((Obj.x - this.x) / this._tileWidth);
@@ -2120,7 +2123,8 @@ def('Jxl.TileMap', {
         r = iy;
         for (r = iy; r < ih; r++) {
             for (c = ix; c < iw; c++) {
-                if (Math.floor(Math.abs(this._data[rs + c])) >= this.collideIndex) this.colOffsets[col++] = new Jxl.Point({
+                cp = Math.floor(Math.abs(this._data[rs + c])) ;
+                if (cp >= this.collideIndex && !(cp in this.noCollide) ) this.colOffsets[col++] = new Jxl.Point({
                     x: this.x + c * this._tileWidth,
                     y: this.y + r * this._tileHeight
                 });
@@ -2146,6 +2150,7 @@ def('Jxl.TileMap', {
         var curY = StartY - stepY;
         var tx;
         var ty;
+        var cp;
         var i = 0;
         while (i < steps) {
             curX += stepX;
@@ -2158,7 +2163,8 @@ def('Jxl.TileMap', {
 
             tx = curX / this._tileWidth;
             ty = curY / this._tileHeight;
-            if ((Math.floor(this._data[ty * this.widthInTiles + tx])) >= this.collideIndex) {
+            cp = (Math.floor(this._data[ty * this.widthInTiles + tx]));
+            if (cp >= this.collideIndex && !(cp in this.noCollide)) {
                 //Some basic helper stuff
                 tx *= this._tileWidth;
                 ty *= this._tileHeight;
@@ -2220,6 +2226,7 @@ Jxl.TileMap.arrayToCSV = function(Data, Width) {
     }
     return csv;
 }
+
 def('Jxl.Audio', {
     init: function() {
         this.sounds = {};
@@ -2330,6 +2337,16 @@ def('Jxl.AssetManager', {
                 ln++;
             });
         }
+        if(assets.data) {
+           _(assets.data).each(function(val, key) {
+                self.loadAsset('data', key, val, function(asset) {
+                    ct++;
+                    if(callback != undefined && ct >= ln) callback();
+                    if(progress)progress(ct, ln);
+                });
+                ln++;
+           });
+        }
     },
     loadAsset: function(type, name, src, callback) {
       var self = this;
@@ -2359,11 +2376,21 @@ def('Jxl.AssetManager', {
                 self.assets[name] = can;
                 if(callback) callback(can);
             }, true);
-
         break;
+        case 'data':
+            var xmlHTTP = new XMLHttpRequest();
+            xmlHTTP.onreadystatechange = function() {
+                if(xmlHTTP.readyState == 4 && xmlHTTP.status==200) {
+                    self.assets[name] = xmlHTTP.responseText;
+                    if(callback) callback(xmlHTTP.responseText);
+                }
+            }
+            xmlHTTP.open("GET", src, true);
+            xmlHTTP.send();
       }
     }
 });
+
 /*** Utility ***/
 def('Jxl.List', {
     init: function() {
@@ -3009,6 +3036,9 @@ def('Jxl.Util', {
             else if (velocity < -max) velocity = -max;
         }
         return velocity;
+    },
+    range: function(min, max) {
+        return Math.random()*(Math.abs(min)+max)-Math.abs(min);
     },
     setWorldBounds: function(X, Y, Width, Height, Divisions) {
         //Set default values for optional parameters

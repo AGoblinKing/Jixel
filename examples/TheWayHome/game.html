@@ -2,7 +2,6 @@
 <html>
   <head>
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>Jixel - Tech Test Example</title>
     <meta name="viewport" content="width=device-width; initial-scale=1; maximum-scale=1; user-scalable=0;"/>
     <link href='http://fonts.googleapis.com/css?family=Geo' rel='stylesheet' type='text/css'/>
     <script type="text/javascript" src="../../jixel.js"></script>
@@ -10,9 +9,9 @@
     <script type="text/javascript" src="src/Cloud.js"></script>
     <script type="text/javascript" src="src/GameState.js"></script>
     <script type="text/javascript">
-      window.addEventListener('load', function(){
+      window.addEventListener('load', function() {
         var can = document.getElementById('target');
-        Jxl.config({canvas:can, width: window.innerWidth, height: window.innerHeight});
+        Jxl.config({canvas:can, width: window.innerWidth, height: window.innerHeight, scale: new Jxl.Point({x:2, y:2})});
         var assets = {
             'images': {
               'cloud': '../assets/cloud.png',
@@ -23,10 +22,13 @@
               'hit': '../assets/hit.mp3',
               'jump': '../assets/jump.wav',
               'keyboard': '../assets/keyboard_cat_remix.mp3'
+            },
+            'data': {
+                'map': 'resources/data/map.csv'
             }
         };
         Jxl.am.load(assets, function() {
-            Jxl.state = new GameState();
+            Jxl.state = new TWH.GameState();
             Jxl.start();    
         });
       }, true);
