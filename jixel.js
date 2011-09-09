@@ -880,7 +880,7 @@ var def = function(name, proto) {
     };
     DefClass.prototype.init = function(){};
     _(proto).has('extend', function(val) {
-        DefClass.prototype = new val();
+        DefClass.prototype = new val;
         DefClass.prototype.constructor = DefClass;
     });
     _(proto).has('mixins', function(mixins) { 
@@ -908,6 +908,7 @@ var def = function(name, proto) {
     });
     return ref;
 };
+
 /**
  * Provides requestAnimationFrame in a cross browser way.
  * http://paulirish.com/2011/requestanimationframe-for-smart-animating/
@@ -962,6 +963,9 @@ def('Jxl', {
         self.scroll = new Jxl.Point();
         self.renderedFrames = 0;
         Jxl.Util.setWorldBounds(0,0,this.width, this.height);
+    },
+    scale: {
+        x: 1, y:1
     },
     follow: function(target, lerp) { 
         if(lerp == undefined) lerp = 1;
@@ -1080,8 +1084,9 @@ def('Jxl', {
         this.doFollow();
         this.state.update();
         this.state.preProcess();
+        Jxl.buffer.clearRect(0,0, Jxl.canvas.width, Jxl.canvas.height);
         this.state.render();
-        this.mouse.render();
+        this.mouse.render();        
         this.keys.update();
         this.audio.update();
         this.state.postProcess();
@@ -1653,7 +1658,6 @@ def('Jxl.State', {
 	    this.defaultGroup.remove(object);
     },
     preProcess: function() {
-        Jxl.buffer.clearRect(0,0, Jxl.width, Jxl.height);
     },
     update: function() {
         this.defaultGroup.update();
@@ -1709,11 +1713,11 @@ def('Jxl.Sprite', {
     },
     flip: function() {
         this.bufferCTX.scale(-1,1);
-        this.bufferCTX.translate(-this.width, 0); 
+        this.bufferCTX.translate(-this.buffer.width, 0); 
     },
     calcFrame: function() {
-        this.buffer.width = this.width;
-        this.bufferCTX.clearRect(0, 0, this.width, this.height);
+        this.buffer.width = this.buffer.width;
+        this.bufferCTX.clearRect(0, 0, this.buffer.width, this.buffer.height);
         var rx = this._curFrame * this.width;
         var ry = 0;
         if(rx > this.graphic.width) {
@@ -1721,7 +1725,7 @@ def('Jxl.Sprite', {
             rx = rx % this.graphic.width;
         }
         if(this.reverse) this.flip();
-        this.bufferCTX.drawImage(this.graphic, rx, ry, this.width, this.height, 0, 0, this.width, this.height);
+        this.bufferCTX.drawImage(this.graphic.scaled, rx*Jxl.scale.x, ry*Jxl.scale.y, this.width*Jxl.scale.x, this.height*Jxl.scale.y, 0, 0, this.width*Jxl.scale.x, this.height*Jxl.scale.y);
     },
     // Rotations are stored on the fly instead of prebaked since they are cheaper here than in flixel.
     render: function() {
@@ -1737,10 +1741,10 @@ def('Jxl.Sprite', {
             Jxl.buffer.translate(this.rotPoint.x, this.rotPoint.y);
             Jxl.buffer.rotate(this.angle*Math.PI/180);
             Jxl.buffer.translate(-this.rotPoint.x, -this.rotPoint.y);
-            Jxl.buffer.drawImage(rCan, this._point.x, this._point.y, this.width*this.scale.x, this.height*this.scale.y);    
+            Jxl.buffer.drawImage(rCan, this._point.x*Jxl.scale.x, this._point.y*Jxl.scale.y, this.buffer.width*this.scale.x, this.buffer.height*this.scale.y);    
             Jxl.buffer.restore();
         } else {
-             Jxl.buffer.drawImage(rCan, this._point.x, this._point.y, this.width*this.scale.x, this.height*this.scale.y);
+             Jxl.buffer.drawImage(rCan, this._point.x*Jxl.scale.x, this._point.y*Jxl.scale.y, this.buffer.width*this.scale.x, this.buffer.height*this.scale.y);    
         }
         
     },
@@ -1811,11 +1815,14 @@ def('Jxl.Sprite', {
     loadGraphic: function(params) {
         this.applyParams(params);
         this.buffer = document.createElement('canvas');
-        this.buffer.width = this.width;
-        this.buffer.height = this.height;
-        if(this.graphic == undefined) this.graphic = document.createElement('canvas');
+        this.buffer.width = this.width*Jxl.scale.x;
+        this.buffer.height = this.height*Jxl.scale.y;
+        if(this.graphic == undefined) {
+            this.graphic = document.createElement('canvas');
+            this.graphic.scaled = this.graphic;
+        }
         this.bufferCTX = this.buffer.getContext('2d');
-        this.bufferCTX.drawImage(this.graphic, 0, 0, this.width, this.height, 0, 0, this.width, this.height); 
+        this.bufferCTX.drawImage(this.graphic.scaled, this.width*Jxl.scale.x, this.height*Jxl.scale.y); 
         this.resetHelpers();
         return this;
     },
@@ -1827,7 +1834,7 @@ def('Jxl.Sprite', {
 	    this.height = this.graphic.height = this.frameHeight = Height;
         ctx.fillStyle = Jxl.Util.makeRGBA(Color);
         ctx.fillRect(0, 0, Width, Height);
-        this.resetHelpers();
+        this.loadGraphic();
         return this;
     }
 });
@@ -1956,7 +1963,7 @@ def('Jxl.TileMap', {
             cri = ri;
             for (c = 0; c < this._screenCols; c++) {
                 var _flashRect = this._rects[cri++];
-                if (_flashRect != null) Jxl.buffer.drawImage(this._pixels, _flashRect[0], _flashRect[1], _flashRect[2], _flashRect[3], _flashPoint.x, _flashPoint.y, this._tileWidth, this._tileHeight);
+                if (_flashRect != null) Jxl.buffer.drawImage(this._pixels.scaled, _flashRect[0]*Jxl.scale.x, _flashRect[1]*Jxl.scale.y, _flashRect[2]*Jxl.scale.x, _flashRect[3]*Jxl.scale.y, _flashPoint.x*Jxl.scale.x, _flashPoint.y*Jxl.scale.y, this._tileWidth*Jxl.scale.x, this._tileHeight*Jxl.scale.y);
                 _flashPoint.x += this._tileWidth;
             }
             ri += this.widthInTiles;
@@ -2373,6 +2380,10 @@ def('Jxl.AssetManager', {
                 can.height = this.height;
                 var ctx = can.getContext('2d');
                 ctx.drawImage(this, 0, 0);
+   
+                if(Jxl.scale.x != 1 || Jxl.scale.y != 1) {
+                    can.scaled = scaleImage(can, Jxl.scale);
+                }
                 self.assets[name] = can;
                 if(callback) callback(can);
             }, true);
@@ -2390,6 +2401,30 @@ def('Jxl.AssetManager', {
       }
     }
 });
+
+
+function scaleImage(img, scale) {
+    var tmp = document.createElement('canvas');
+    tmp.width = img.width*scale.x;
+    tmp.height = img.height*scale.y;
+    var ctx = tmp.getContext('2d');
+    var imgCtx = img.getContext('2d');
+    var imgData = imgCtx.getImageData(0, 0, img.width, img.height);  
+    var tmpData = ctx.getImageData(0, 0, tmp.width, tmp.height);
+
+    for(var x=0; x < tmp.width; x++) {
+        for(var y=0; y < tmp.height; y++) {
+            var i = 4*(Math.floor(y/Jxl.scale.y)*img.width+Math.floor(x/Jxl.scale.x));
+            var ni = 4*(y*tmp.width+x);
+            
+            for(var s=0; s<4;s++) {
+                tmpData.data[ni+s] = imgData.data[i+s];
+            }
+        }
+    }
+    ctx.putImageData(tmpData, 0, 0);
+    return tmp;
+}
 
 /*** Utility ***/
 def('Jxl.List', {

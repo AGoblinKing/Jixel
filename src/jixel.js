@@ -31,6 +31,9 @@ def('Jxl', {
         self.renderedFrames = 0;
         Jxl.Util.setWorldBounds(0,0,this.width, this.height);
     },
+    scale: {
+        x: 1, y:1
+    },
     follow: function(target, lerp) { 
         if(lerp == undefined) lerp = 1;
         this.followTarget= target;
@@ -148,8 +151,9 @@ def('Jxl', {
         this.doFollow();
         this.state.update();
         this.state.preProcess();
+        Jxl.buffer.clearRect(0,0, Jxl.canvas.width, Jxl.canvas.height);
         this.state.render();
-        this.mouse.render();
+        this.mouse.render();        
         this.keys.update();
         this.audio.update();
         this.state.postProcess();

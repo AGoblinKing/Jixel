@@ -37,11 +37,11 @@ def('Jxl.Sprite', {
     },
     flip: function() {
         this.bufferCTX.scale(-1,1);
-        this.bufferCTX.translate(-this.width, 0); 
+        this.bufferCTX.translate(-this.buffer.width, 0); 
     },
     calcFrame: function() {
-        this.buffer.width = this.width;
-        this.bufferCTX.clearRect(0, 0, this.width, this.height);
+        this.buffer.width = this.buffer.width;
+        this.bufferCTX.clearRect(0, 0, this.buffer.width, this.buffer.height);
         var rx = this._curFrame * this.width;
         var ry = 0;
         if(rx > this.graphic.width) {
@@ -49,7 +49,7 @@ def('Jxl.Sprite', {
             rx = rx % this.graphic.width;
         }
         if(this.reverse) this.flip();
-        this.bufferCTX.drawImage(this.graphic, rx, ry, this.width, this.height, 0, 0, this.width, this.height);
+        this.bufferCTX.drawImage(this.graphic.scaled, rx*Jxl.scale.x, ry*Jxl.scale.y, this.width*Jxl.scale.x, this.height*Jxl.scale.y, 0, 0, this.width*Jxl.scale.x, this.height*Jxl.scale.y);
     },
     // Rotations are stored on the fly instead of prebaked since they are cheaper here than in flixel.
     render: function() {
@@ -65,10 +65,10 @@ def('Jxl.Sprite', {
             Jxl.buffer.translate(this.rotPoint.x, this.rotPoint.y);
             Jxl.buffer.rotate(this.angle*Math.PI/180);
             Jxl.buffer.translate(-this.rotPoint.x, -this.rotPoint.y);
-            Jxl.buffer.drawImage(rCan, this._point.x, this._point.y, this.width*this.scale.x, this.height*this.scale.y);    
+            Jxl.buffer.drawImage(rCan, this._point.x*Jxl.scale.x, this._point.y*Jxl.scale.y, this.buffer.width*this.scale.x, this.buffer.height*this.scale.y);    
             Jxl.buffer.restore();
         } else {
-             Jxl.buffer.drawImage(rCan, this._point.x, this._point.y, this.width*this.scale.x, this.height*this.scale.y);
+             Jxl.buffer.drawImage(rCan, this._point.x*Jxl.scale.x, this._point.y*Jxl.scale.y, this.buffer.width*this.scale.x, this.buffer.height*this.scale.y);    
         }
         
     },
@@ -139,11 +139,14 @@ def('Jxl.Sprite', {
     loadGraphic: function(params) {
         this.applyParams(params);
         this.buffer = document.createElement('canvas');
-        this.buffer.width = this.width;
-        this.buffer.height = this.height;
-        if(this.graphic == undefined) this.graphic = document.createElement('canvas');
+        this.buffer.width = this.width*Jxl.scale.x;
+        this.buffer.height = this.height*Jxl.scale.y;
+        if(this.graphic == undefined) {
+            this.graphic = document.createElement('canvas');
+            this.graphic.scaled = this.graphic;
+        }
         this.bufferCTX = this.buffer.getContext('2d');
-        this.bufferCTX.drawImage(this.graphic, 0, 0, this.width, this.height, 0, 0, this.width, this.height); 
+        this.bufferCTX.drawImage(this.graphic.scaled, this.width*Jxl.scale.x, this.height*Jxl.scale.y); 
         this.resetHelpers();
         return this;
     },
@@ -155,7 +158,7 @@ def('Jxl.Sprite', {
 	    this.height = this.graphic.height = this.frameHeight = Height;
         ctx.fillStyle = Jxl.Util.makeRGBA(Color);
         ctx.fillRect(0, 0, Width, Height);
-        this.resetHelpers();
+        this.loadGraphic();
         return this;
     }
 });

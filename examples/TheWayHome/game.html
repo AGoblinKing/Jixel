@@ -3,15 +3,15 @@
   <head>
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
     <meta name="viewport" content="width=device-width; initial-scale=1; maximum-scale=1; user-scalable=0;"/>
-    <link href='http://fonts.googleapis.com/css?family=Geo' rel='stylesheet' type='text/css'/>
     <script type="text/javascript" src="../../jixel.js"></script>
     <script type="text/javascript" src="src/Cat.js"></script>
     <script type="text/javascript" src="src/Cloud.js"></script>
     <script type="text/javascript" src="src/GameState.js"></script>
     <script type="text/javascript">
       window.addEventListener('load', function() {
+        var scale = 3;
         var can = document.getElementById('target');
-        Jxl.config({canvas:can, width: window.innerWidth, height: window.innerHeight, scale: new Jxl.Point({x:2, y:2})});
+        Jxl.config({canvas:can, width: window.innerWidth/scale, height: window.innerHeight/scale, scale: new Jxl.Point({x:scale, y:scale})});
         var assets = {
             'images': {
               'cloud': '../resources/images/cloud.png',

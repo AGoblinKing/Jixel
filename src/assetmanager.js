@@ -78,6 +78,10 @@ def('Jxl.AssetManager', {
                 can.height = this.height;
                 var ctx = can.getContext('2d');
                 ctx.drawImage(this, 0, 0);
+   
+                if(Jxl.scale.x != 1 || Jxl.scale.y != 1) {
+                    can.scaled = scaleImage(can, Jxl.scale);
+                }
                 self.assets[name] = can;
                 if(callback) callback(can);
             }, true);
@@ -95,3 +99,27 @@ def('Jxl.AssetManager', {
       }
     }
 });
+
+
+function scaleImage(img, scale) {
+    var tmp = document.createElement('canvas');
+    tmp.width = img.width*scale.x;
+    tmp.height = img.height*scale.y;
+    var ctx = tmp.getContext('2d');
+    var imgCtx = img.getContext('2d');
+    var imgData = imgCtx.getImageData(0, 0, img.width, img.height);  
+    var tmpData = ctx.getImageData(0, 0, tmp.width, tmp.height);
+
+    for(var x=0; x < tmp.width; x++) {
+        for(var y=0; y < tmp.height; y++) {
+            var i = 4*(Math.floor(y/Jxl.scale.y)*img.width+Math.floor(x/Jxl.scale.x));
+            var ni = 4*(y*tmp.width+x);
+            
+            for(var s=0; s<4;s++) {
+                tmpData.data[ni+s] = imgData.data[i+s];
+            }
+        }
+    }
+    ctx.putImageData(tmpData, 0, 0);
+    return tmp;
+}

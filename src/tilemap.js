@@ -106,7 +106,7 @@ def('Jxl.TileMap', {
             cri = ri;
             for (c = 0; c < this._screenCols; c++) {
                 var _flashRect = this._rects[cri++];
-                if (_flashRect != null) Jxl.buffer.drawImage(this._pixels, _flashRect[0], _flashRect[1], _flashRect[2], _flashRect[3], _flashPoint.x, _flashPoint.y, this._tileWidth, this._tileHeight);
+                if (_flashRect != null) Jxl.buffer.drawImage(this._pixels.scaled, _flashRect[0]*Jxl.scale.x, _flashRect[1]*Jxl.scale.y, _flashRect[2]*Jxl.scale.x, _flashRect[3]*Jxl.scale.y, _flashPoint.x*Jxl.scale.x, _flashPoint.y*Jxl.scale.y, this._tileWidth*Jxl.scale.x, this._tileHeight*Jxl.scale.y);
                 _flashPoint.x += this._tileWidth;
             }
             ri += this.widthInTiles;
