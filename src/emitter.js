@@ -77,9 +77,9 @@ def('Jxl.Emitter', {
             else s = new Jxl.Sprite();
 
             if (Multiple) {
-                r = Math.random() * tf;
+                r = Math.floor(Math.random() * tf);
                 s.loadGraphic({graphic:Graphics, animated:true, width: Dimensions.x, height:Dimensions.y});
-                s.frame = r;
+                s._curFrame = r;
             }
             else {
                 s.loadGraphic({graphic:Graphics});

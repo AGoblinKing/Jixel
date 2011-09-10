@@ -4,24 +4,28 @@ def('Jxl.Mouse', {
         Jxl.Object.prototype.init.call(this);
         var self = this;
         Jxl.canvas.addEventListener('mousemove', function(e) {
-            self.x = e.x/Jxl.scale.x;
-            self.y = e.y/Jxl.scale.x;
+            self.x = e.x/Jxl.scale.x-Jxl.scroll.x;
+            self.y = e.y/Jxl.scale.y-Jxl.scroll.y;
         }, true);
         Jxl.canvas.addEventListener('click', function(e) {
-            //collide with objects.. set special flag about type of click
+            Jxl.Util.overlap(self, Jxl.state.defaultGroup, function(obj1, obj2) {
+                if(obj2.click) obj2.click();
+            });
         }, true);
         Jxl.canvas.addEventListener('contextmenu', function(e){
-            console.log([self.x, self.y]);
+            Jxl.Util.overlap(self, Jxl.state.defaultGroup, function(obj1, obj2) {
+                if(obj2.rclick) obj2.rclick();
+            });
             if(e.preventDefault)
                 e.preventDefault();
             else
-                e.returnValue= false;
+                e.returnValue = false;
             return false;
         }, true);
         _(this).extend({
             scrollFactor: new Jxl.Point({x: 0, y: 0}),
         });
     },
-    width: 1,
-    height: 1
+    width: 5,
+    height: 5
 });

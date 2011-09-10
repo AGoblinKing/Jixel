@@ -81,6 +81,8 @@ def('Jxl.AssetManager', {
    
                 if(Jxl.scale.x != 1 || Jxl.scale.y != 1) {
                     can.scaled = scaleImage(can, Jxl.scale);
+                } else {
+                    can.scaled = can;
                 }
                 self.assets[name] = can;
                 if(callback) callback(can);

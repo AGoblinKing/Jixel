@@ -12,7 +12,8 @@ def('TWH.GameState', {
         this.player = new TWH.Cat(Jxl.am.get('animals'), 0, 272);
         this.add(this.map);
         this.add(this.player);
-        Jxl.followLead = new Jxl.Point({x:2, y:2});
+        this.add(this.player.emitter);
+        Jxl.followLead = new Jxl.Point({x:1.0, y:1.0});
         Jxl.follow(this.player);
     },
     drawClouds: function(num) {
@@ -22,6 +23,6 @@ def('TWH.GameState', {
     },
     update: function() {
         Jxl.State.prototype.update.call(this);
-        Jxl.Util.collide(this.player, this.map);
+        this.collide();
     }
 });

@@ -42,9 +42,9 @@ def('Jxl.Sprite', {
     calcFrame: function() {
         this.buffer.width = this.buffer.width;
         this.bufferCTX.clearRect(0, 0, this.buffer.width, this.buffer.height);
-        var rx = this._curFrame * this.width;
+        var rx = this._curFrame*this.width;
         var ry = 0;
-        if(rx > this.graphic.width) {
+        if(rx >= this.graphic.width) {
             ry = Math.floor(rx/this.graphic.width)*this.height;
             rx = rx % this.graphic.width;
         }
@@ -62,9 +62,9 @@ def('Jxl.Sprite', {
             Jxl.buffer.save();
             this.rotPoint.x = this._point.x+this.width/2;
             this.rotPoint.y = this._point.y+this.height/2;
-            Jxl.buffer.translate(this.rotPoint.x, this.rotPoint.y);
+            Jxl.buffer.translate(this.rotPoint.x*Jxl.scale.x, this.rotPoint.y*Jxl.scale.y);
             Jxl.buffer.rotate(this.angle*Math.PI/180);
-            Jxl.buffer.translate(-this.rotPoint.x, -this.rotPoint.y);
+            Jxl.buffer.translate(-this.rotPoint.x*Jxl.scale.x, -this.rotPoint.y*Jxl.scale.y);
             Jxl.buffer.drawImage(rCan, this._point.x*Jxl.scale.x, this._point.y*Jxl.scale.y, this.buffer.width*this.scale.x, this.buffer.height*this.scale.y);    
             Jxl.buffer.restore();
         } else {

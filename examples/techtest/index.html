@@ -12,7 +12,7 @@
     <script type="text/javascript">
       window.addEventListener('load', function(){
         var can = document.getElementById('target');
-        Jxl.config({canvas:can, width: window.innerWidth, height: window.innerHeight});
+        Jxl.config({canvas:can, width: window.innerWidth/2, height: window.innerHeight/2, scale: new Jxl.Point({x: 2, y:2})});
         var assets = {
             'images': {
               'cloud': '../resources/images/cloud.png',

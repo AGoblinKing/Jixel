@@ -1331,6 +1331,9 @@ def('Jxl.Object', {
     flickering: function() {
         return this._flickerTimer >= 0;
     },
+    setFlicker: function(delta) {
+        this._flickerTimer = delta;
+    },
     hurt: function(damage) {
         if((this.health -= damage) <= 0 ) this.kill();
     },
@@ -1718,9 +1721,9 @@ def('Jxl.Sprite', {
     calcFrame: function() {
         this.buffer.width = this.buffer.width;
         this.bufferCTX.clearRect(0, 0, this.buffer.width, this.buffer.height);
-        var rx = this._curFrame * this.width;
+        var rx = this._curFrame*this.width;
         var ry = 0;
-        if(rx > this.graphic.width) {
+        if(rx >= this.graphic.width) {
             ry = Math.floor(rx/this.graphic.width)*this.height;
             rx = rx % this.graphic.width;
         }
@@ -1738,9 +1741,9 @@ def('Jxl.Sprite', {
             Jxl.buffer.save();
             this.rotPoint.x = this._point.x+this.width/2;
             this.rotPoint.y = this._point.y+this.height/2;
-            Jxl.buffer.translate(this.rotPoint.x, this.rotPoint.y);
+            Jxl.buffer.translate(this.rotPoint.x*Jxl.scale.x, this.rotPoint.y*Jxl.scale.y);
             Jxl.buffer.rotate(this.angle*Math.PI/180);
-            Jxl.buffer.translate(-this.rotPoint.x, -this.rotPoint.y);
+            Jxl.buffer.translate(-this.rotPoint.x*Jxl.scale.x, -this.rotPoint.y*Jxl.scale.y);
             Jxl.buffer.drawImage(rCan, this._point.x*Jxl.scale.x, this._point.y*Jxl.scale.y, this.buffer.width*this.scale.x, this.buffer.height*this.scale.y);    
             Jxl.buffer.restore();
         } else {
@@ -2383,6 +2386,8 @@ def('Jxl.AssetManager', {
    
                 if(Jxl.scale.x != 1 || Jxl.scale.y != 1) {
                     can.scaled = scaleImage(can, Jxl.scale);
+                } else {
+                    can.scaled = can;
                 }
                 self.assets[name] = can;
                 if(callback) callback(can);
@@ -3171,9 +3176,9 @@ def('Jxl.Emitter', {
             else s = new Jxl.Sprite();
 
             if (Multiple) {
-                r = Math.random() * tf;
+                r = Math.floor(Math.random() * tf);
                 s.loadGraphic({graphic:Graphics, animated:true, width: Dimensions.x, height:Dimensions.y});
-                s.frame = r;
+                s._curFrame = r;
             }
             else {
                 s.loadGraphic({graphic:Graphics});
@@ -3331,32 +3336,37 @@ def('Jxl.Emitter', {
         Jxl.Group.prototype.render.call(this);
     }
 });
+
 def('Jxl.Mouse', {
     extend: Jxl.Object,
     init: function() {
         Jxl.Object.prototype.init.call(this);
         var self = this;
         Jxl.canvas.addEventListener('mousemove', function(e) {
-            self.x = e.x/Jxl.scale.x;
-            self.y = e.y/Jxl.scale.x;
+            self.x = e.x/Jxl.scale.x-Jxl.scroll.x;
+            self.y = e.y/Jxl.scale.y-Jxl.scroll.y;
         }, true);
         Jxl.canvas.addEventListener('click', function(e) {
-            //collide with objects.. set special flag about type of click
+            Jxl.Util.overlap(self, Jxl.state.defaultGroup, function(obj1, obj2) {
+                if(obj2.click) obj2.click();
+            });
         }, true);
         Jxl.canvas.addEventListener('contextmenu', function(e){
-            console.log([self.x, self.y]);
+            Jxl.Util.overlap(self, Jxl.state.defaultGroup, function(obj1, obj2) {
+                if(obj2.rclick) obj2.rclick();
+            });
             if(e.preventDefault)
                 e.preventDefault();
             else
-                e.returnValue= false;
+                e.returnValue = false;
             return false;
         }, true);
         _(this).extend({
             scrollFactor: new Jxl.Point({x: 0, y: 0}),
         });
     },
-    width: 1,
-    height: 1
+    width: 5,
+    height: 5
 });
 
 def('Jxl.Keyboard', {
