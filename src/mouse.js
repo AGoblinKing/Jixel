@@ -4,8 +4,8 @@ def('Jxl.Mouse', {
         Jxl.Object.prototype.init.call(this);
         var self = this;
         Jxl.canvas.addEventListener('mousemove', function(e) {
-            self.x = e.x/Jxl.scale.x-Jxl.scroll.x;
-            self.y = e.y/Jxl.scale.y-Jxl.scroll.y;
+            self.x = e.offsetX/Jxl.scale.x-Jxl.scroll.x;
+            self.y = e.offsetY/Jxl.scale.y-Jxl.scroll.y;
         }, true);
         Jxl.canvas.addEventListener('click', function(e) {
             Jxl.Util.overlap(self, Jxl.state.defaultGroup, function(obj1, obj2) {
