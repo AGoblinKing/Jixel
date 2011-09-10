@@ -2,6 +2,8 @@ def('TWH.Cat', {
     extend: Jxl.Sprite,
     init: function(graphic, x, y) {
         Jxl.Sprite.prototype.init.call(this, {graphic:graphic, x:x, y:y, width:32, height:32});
+        this.emitter = new Jxl.Emitter();
+        this.emitter.createSprites(Jxl.am.get('catbits'), 8, new Jxl.Point({x:16, y:16}), true, true); 
         this.addAnimation('run', [72,73,74,73], .30);
         this.addAnimation('idle', [48,49,50,49], .50);
         this.play('idle');
@@ -12,9 +14,32 @@ def('TWH.Cat', {
         });
         this.acceleration.y = 200;
     },
+    click: function() {
+        this.explode();
+    },
+    explode: function() {
+        Jxl.audio.play('hit');
+        this.solid = false;
+        this.visible = false;
+        this.emitter.x = this.x;
+        this.emitter.y = this.y;
+        this.emitter.start();
+        var self = this;
+        setTimeout(function() {
+            self.respawn();
+        }, 3000);
+    },
+    respawn: function() {
+        this.visible = true;
+        this.setFlicker(1);
+        this.solid = true;
+        this.x = 0;
+        this.y = 0;
+    },
     update: function() {
+        if(!this.solid) return;
         if(this.y > 900) {
-            //explode!
+            this.explode();
         }
         if (Jxl.keys.on('A')) {
              this.velocity.x = this.speed;

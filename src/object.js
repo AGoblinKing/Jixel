@@ -236,6 +236,9 @@ def('Jxl.Object', {
     flickering: function() {
         return this._flickerTimer >= 0;
     },
+    setFlicker: function(delta) {
+        this._flickerTimer = delta;
+    },
     hurt: function(damage) {
         if((this.health -= damage) <= 0 ) this.kill();
     },

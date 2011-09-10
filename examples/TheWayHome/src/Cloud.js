@@ -15,6 +15,7 @@ def('TWH.Cloud', {
         var scale = Math.random()*2;
         this.scale.x = scale;
         this.scale.y = scale;
+        this.solid = false;
     }, 
     update: function() {
         Jxl.Sprite.prototype.update.call(this);
