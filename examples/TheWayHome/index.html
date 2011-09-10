@@ -4,6 +4,36 @@
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
     <meta name="viewport" content="width=device-width; initial-scale=1; maximum-scale=1; user-scalable=0;"/>
     <link href='http://fonts.googleapis.com/css?family=Geo' rel='stylesheet' type='text/css'/>
+    <script type="text/javascript" src="../../jixel.js"></script>
+    <script type="text/javascript" src="src/Cat.js"></script>
+    <script type="text/javascript" src="src/Cloud.js"></script>
+    <script type="text/javascript" src="src/GameState.js"></script>
+    <script type="text/javascript">
+      window.addEventListener('load', function() {
+        var scale = 2;
+        var can = document.getElementById('target');
+        Jxl.config({canvas:can, width: 600/scale, height: 480/scale, scale: new Jxl.Point({x:scale, y:scale})});
+        var assets = {
+            'images': {
+              'cloud': '../resources/images/cloud.png',
+              'catbits': '../resources/images/catparts.png',
+              'animals': '../resources/images/animals.png',
+              'tiles': '../resources/images/tilemap.png'
+            }, 
+            'sounds': {
+              'hit': '../resources/sounds/hit.mp3',
+              'jump': '../resources/sounds/jump.wav'
+            },
+            'data': {
+                'map': 'resources/data/map.csv'
+            }
+        };
+        Jxl.am.load(assets, function() {
+            Jxl.state = new TWH.GameState();
+            Jxl.start();    
+        });
+      }, true);
+    </script>
     <style type="text/css">
       body {
         background-repeat:repeat;
@@ -17,7 +47,7 @@
         margin: auto;
         font-family:'Geo';
       }
-      iframe {
+      canvas {
         border: 2px solid black;
         border-radius: 5px;
       }
@@ -31,7 +61,7 @@
   </head>
   <body>
     <h1>The Way Home</h1>
-    <iframe src="game.html" width="600" height="480"></iframe>
+    <canvas id="target"" width="600" height="480"></canvas>
     <h2>Quick game illustrating some features in Jixel.</h2>
     <h2>Click inside the panel to play.</h2>
     <h2>Controls - WASD - Space Bar</h2>
