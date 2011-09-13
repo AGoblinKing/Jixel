@@ -6,6 +6,7 @@ def('Jxl', {
         width = (config.width === undefined) ? 240 : config.width;
         height = (config.height === undefined) ? 160 : config.height;
         self.canvas = (config.canvas !== undefined) ? config.canvas : document.createElement('canvas');
+        self.autoPause = config.autoPause;
         if(config.scale !== undefined) {
             self.setScale(config.scale);
         } else {
@@ -30,6 +31,12 @@ def('Jxl', {
         self.scroll = new Jxl.Point();
         self.renderedFrames = 0;
         Jxl.Util.setWorldBounds(0,0,this.width, this.height);
+        
+        if(self.autoPause) {
+            window.addEventListener('blur', function(e) {
+                self.pause();
+            }, true);
+        }
     },
     scale: {
         x: 1, y:1
@@ -100,16 +107,13 @@ def('Jxl', {
         if(!this.running) {
             this.running = true;
             this.audio.unpause();
-            this.keys = {};
             this.lastUpdate = new Date();
-            this.UI.pause.destroy();
         }
     },
     pause: function() {
         if(this.running) {
             this.running = false;
             this.audio.pause();
-            this.UI.pause.render(document.body);
         }
     },
     screenWidth: function(width) {

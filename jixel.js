@@ -963,6 +963,9 @@ def('Jxl', {
         self.scroll = new Jxl.Point();
         self.renderedFrames = 0;
         Jxl.Util.setWorldBounds(0,0,this.width, this.height);
+        window.addEventListener('blur', function(e) {
+            self.pause();
+        }, true);
     },
     scale: {
         x: 1, y:1
@@ -1033,16 +1036,13 @@ def('Jxl', {
         if(!this.running) {
             this.running = true;
             this.audio.unpause();
-            this.keys = {};
             this.lastUpdate = new Date();
-            this.UI.pause.destroy();
         }
     },
     pause: function() {
         if(this.running) {
             this.running = false;
             this.audio.pause();
-            this.UI.pause.render(document.body);
         }
     },
     screenWidth: function(width) {
@@ -1090,6 +1090,10 @@ def('Jxl', {
         this.keys.update();
         this.audio.update();
         this.state.postProcess();
+    },
+    showPause: function() {
+        var pauseHTML = "<div class='modal'><div class='pause'><div class='desc'>Jixel is Paused</div><div class='resume button'>Resume!</div></div></div>";
+        
     }
 });
 
