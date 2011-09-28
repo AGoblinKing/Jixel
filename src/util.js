@@ -261,6 +261,9 @@ def('Jxl.Util', {
     roundingError: 0.0000001,
     quadTreeDivisions: 3,
     singleton: true,
+    'delete': function(item) {
+        delete item;
+    },
     random: function(Seed) {
         if ((Seed == undefined) || Seed === undefined) return Math.random();
         else {

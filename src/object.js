@@ -90,6 +90,9 @@ def('Jxl.Object', {
        });
        this.applyParams(params);
     },
+    destroy: function() {
+        this.kill();
+    },
     refreshHulls: function() {
         var cx = this.colHullMinus.x,
             cy = this.colHullMinus.y;

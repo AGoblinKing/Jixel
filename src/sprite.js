@@ -158,6 +158,12 @@ def('Jxl.Sprite', {
 	    this.height = this.graphic.height = this.frameHeight = Height;
         ctx.fillStyle = Jxl.Util.makeRGBA(Color);
         ctx.fillRect(0, 0, Width, Height);
+        this.graphic.scaled = document.createElement('canvas');
+        this.graphic.scaled.width = this.width*Jxl.scale.x;
+        this.graphic.scaled.height = this.height*Jxl.scale.y;
+        var scaleCTX = this.graphic.scaled.getContext('2d');
+        scaleCTX.fillStyle = Jxl.Util.makeRGBA(Color);
+        scaleCTX.fillRect(0, 0, Width*Jxl.scale.x, Height*Jxl.scale.y);
         this.loadGraphic();
         return this;
     }

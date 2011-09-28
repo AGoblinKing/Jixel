@@ -11,8 +11,7 @@ def('Jxl.State', {
     remove: function(object) {
 	    this.defaultGroup.remove(object);
     },
-    preProcess: function() {
-    },
+    preProcess: function() {},
     update: function() {
         this.defaultGroup.update();
     },

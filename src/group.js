@@ -209,7 +209,7 @@ def('Jxl.Group', {
         var ml = this.members.length;
         while (i < ml) {
             o = this.members[i++];
-            if ((o != null) && o.exists && o.visible) o.render();
+            if ((o != undefined) && o.exists && o.visible) o.render();
         }
     },
     render: function() {
@@ -221,8 +221,9 @@ def('Jxl.Group', {
         var ml = this.members.length;
         while (i < ml) {
             o = this.members[i++];
-            if (o != null) o.kill();
+            if (o != undefined) o.kill();
         }
+        this.members = [];
     },
     kill: function() {
         this.killMembers();
@@ -233,7 +234,7 @@ def('Jxl.Group', {
         var o;
         var ml = this.members.length;
         while (i < ml) {
-            o = members[i++];
+            o = this.members[i++];
             if (o != null) o.destroy();
         }
         this.members.length = 0;

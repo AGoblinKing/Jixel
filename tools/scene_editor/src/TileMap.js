@@ -11,12 +11,14 @@ Ext.define('SE.Src', {
                         handler: function() {
                             SE.Model.add('src', Ext.create('SE.Scene', {
                                 name: 'New Scene'
-                            });
+                            }));
                         }
                     }, {
                         text: 'TileMap',
                         handler: function() {
-                            record.appendChild(SE.TileMap);
+                            record.appendChild(Ext.create('SE.TileMap', {
+                                name: 'New Tilemap'
+                            }));
                         }
                     }, {
                         text: 'Sprite'
@@ -29,7 +31,7 @@ Ext.define('SE.Src', {
     }
 });
 
-Ext.define('SE.Resources', function() {
+Ext.define('SE.Resources', {
     mixins: ['Ext.util.Observable'],
     name: 'resources',
     data: [{
@@ -47,7 +49,7 @@ Ext.define('SE.Resources', function() {
                         handler: function() {
                             SE.Model.add('src', Ext.create('SE.Scene', {
                                 name: 'New Scene'
-                            });
+                            }));
                         }
                     }, {
                         text: 'Sound',
@@ -61,7 +63,7 @@ Ext.define('SE.Resources', function() {
     }
 });
 
-Ext.define('SE.Index', function() {
+Ext.define('SE.Index', {
     mixins: ['Ext.util.Observable'],
     name: 'index'
 });

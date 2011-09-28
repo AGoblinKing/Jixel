@@ -939,6 +939,7 @@ def('Jxl', {
         width = (config.width === undefined) ? 240 : config.width;
         height = (config.height === undefined) ? 160 : config.height;
         self.canvas = (config.canvas !== undefined) ? config.canvas : document.createElement('canvas');
+        self.autoPause = config.autoPause;
         if(config.scale !== undefined) {
             self.setScale(config.scale);
         } else {
@@ -963,9 +964,12 @@ def('Jxl', {
         self.scroll = new Jxl.Point();
         self.renderedFrames = 0;
         Jxl.Util.setWorldBounds(0,0,this.width, this.height);
-        window.addEventListener('blur', function(e) {
-            self.pause();
-        }, true);
+        
+        if(self.autoPause) {
+            window.addEventListener('blur', function(e) {
+                self.pause();
+            }, true);
+        }
     },
     scale: {
         x: 1, y:1
@@ -1090,10 +1094,6 @@ def('Jxl', {
         this.keys.update();
         this.audio.update();
         this.state.postProcess();
-    },
-    showPause: function() {
-        var pauseHTML = "<div class='modal'><div class='pause'><div class='desc'>Jixel is Paused</div><div class='resume button'>Resume!</div></div></div>";
-        
     }
 });
 
@@ -1188,6 +1188,9 @@ def('Jxl.Object', {
             _group: false
        });
        this.applyParams(params);
+    },
+    destroy: function() {
+        this.kill();
     },
     refreshHulls: function() {
         var cx = this.colHullMinus.x,
@@ -1576,7 +1579,7 @@ def('Jxl.Group', {
         var ml = this.members.length;
         while (i < ml) {
             o = this.members[i++];
-            if ((o != null) && o.exists && o.visible) o.render();
+            if ((o != undefined) && o.exists && o.visible) o.render();
         }
     },
     render: function() {
@@ -1588,8 +1591,9 @@ def('Jxl.Group', {
         var ml = this.members.length;
         while (i < ml) {
             o = this.members[i++];
-            if (o != null) o.kill();
+            if (o != undefined) o.kill();
         }
+        this.members = [];
     },
     kill: function() {
         this.killMembers();
@@ -1600,7 +1604,7 @@ def('Jxl.Group', {
         var o;
         var ml = this.members.length;
         while (i < ml) {
-            o = members[i++];
+            o = this.members[i++];
             if (o != null) o.destroy();
         }
         this.members.length = 0;
@@ -1651,6 +1655,7 @@ def('Jxl.Group', {
         return 0;
     }
 });
+
 def('Jxl.State', {
     init: function(params) {
         _(this).extend({
@@ -1664,8 +1669,7 @@ def('Jxl.State', {
     remove: function(object) {
 	    this.defaultGroup.remove(object);
     },
-    preProcess: function() {
-    },
+    preProcess: function() {},
     update: function() {
         this.defaultGroup.update();
     },
@@ -1841,6 +1845,12 @@ def('Jxl.Sprite', {
 	    this.height = this.graphic.height = this.frameHeight = Height;
         ctx.fillStyle = Jxl.Util.makeRGBA(Color);
         ctx.fillRect(0, 0, Width, Height);
+        this.graphic.scaled = document.createElement('canvas');
+        this.graphic.scaled.width = this.width*Jxl.scale.x;
+        this.graphic.scaled.height = this.height*Jxl.scale.y;
+        var scaleCTX = this.graphic.scaled.getContext('2d');
+        scaleCTX.fillStyle = Jxl.Util.makeRGBA(Color);
+        scaleCTX.fillRect(0, 0, Width*Jxl.scale.x, Height*Jxl.scale.y);
         this.loadGraphic();
         return this;
     }
@@ -2307,6 +2317,7 @@ def('Jxl.Audio', {
         this.sounds[name] = audio;
     }
 });
+
 def('Jxl.AssetManager', {
     init: function() {
         this.assets = {};
@@ -2698,6 +2709,9 @@ def('Jxl.Util', {
     roundingError: 0.0000001,
     quadTreeDivisions: 3,
     singleton: true,
+    'delete': function(item) {
+        delete item;
+    },
     random: function(Seed) {
         if ((Seed == undefined) || Seed === undefined) return Math.random();
         else {
