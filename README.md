@@ -4,8 +4,7 @@ An open source game engine based on Flixel (www.flixel.org), but with more Jix.
 
 The Jixel Project
 -----
-Jixel itself is only ONE part of the Jixel Project which aims to make game development fun, colla*bro*tive, and accessible. 
-Check out JixelNode and JixelNodeDevelop! 
+Jixel itself is only ONE part of the Jixel Project which aims to make game development fun and accessible. 
 
 Help/Documentation
 ----
@@ -13,8 +12,8 @@ You'll want to use the Flixel documentation and look at the example projects. Ad
 
 DEMOS
 -----
-http://whenraptorsattack.github.com/Jixel/examples/TheWayHome/index.html
-http://whenraptorsattack.github.com/Jixel/examples/techtest/index.html
+http://joshgalvin.github.io/Jixel/examples/TheWayHome/
+
 
 
 
